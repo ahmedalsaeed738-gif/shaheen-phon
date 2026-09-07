@@ -32,7 +32,7 @@ function logoutAdmin() {
   location.reload();
 }
 
-// ضغط شديد جداً للصور لتصغير الحجم إلى أقل من 100KB
+// ضغط الصور لتصغير الحجم وتفادي أخطاء الرفع
 function compressImage(file, maxWidth = 400, quality = 0.5) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -104,6 +104,8 @@ async function loadAdminProducts() {
     const grid = document.getElementById('adminProductsGrid');
     grid.innerHTML = '';
 
+    if (!Array.isArray(adminProducts)) return;
+
     adminProducts.forEach(p => {
       const card = document.createElement('div');
       card.className = 'product-card';
@@ -124,13 +126,18 @@ async function loadAdminProducts() {
 async function handleSaveProduct(e) {
   e.preventDefault();
   const id = document.getElementById('editProductId').value;
-  const name = document.getElementById('prodName').value;
-  const price = document.getElementById('prodPrice').value;
-  const stock = document.getElementById('prodStock').value;
+  const name = document.getElementById('prodName').value.trim();
+  const price = parseFloat(document.getElementById('prodPrice').value);
+  const stock = parseInt(document.getElementById('prodStock').value) || 1;
   const category = document.getElementById('prodCategory').value;
-  const description = document.getElementById('prodDesc').value;
-  const imageUrlInput = document.getElementById('prodImageUrl').value;
+  const description = document.getElementById('prodDesc').value.trim();
+  const imageUrlInput = document.getElementById('prodImageUrl').value.trim();
   const imageFile = document.getElementById('prodImageFile').files[0];
+
+  if (!name || isNaN(price)) {
+    alert('يرجى ملء اسم المنتج والسعر بشكل صحيح');
+    return;
+  }
 
   let image_url = imageUrlInput || null;
   if (imageFile) {
@@ -142,7 +149,14 @@ async function handleSaveProduct(e) {
     }
   }
 
-  const payload = { name, price, stock, category, description, image_url };
+  const payload = { 
+    name, 
+    price, 
+    stock, 
+    category: category || 'عام', 
+    description: description || '', 
+    image_url 
+  };
 
   try {
     let res = id 
@@ -154,7 +168,8 @@ async function handleSaveProduct(e) {
       resetProductForm();
       loadAdminProducts();
     } else {
-      alert('تعذر الحفظ: تأكد من أن حقول البيانات صحيحة');
+      const errRes = await res.json();
+      alert('حدث خطأ أثناء الحفظ: ' + (errRes.error || 'تأكد من البيانات المتبادلة'));
     }
   } catch (err) { 
     console.error(err);
@@ -172,6 +187,7 @@ function editProduct(id) {
   document.getElementById('prodStock').value = p.stock ?? 1;
   document.getElementById('prodCategory').value = p.category || 'عام';
   document.getElementById('prodDesc').value = p.description || '';
+  document.getElementById('prodImageUrl').value = p.image_url && !p.image_url.startsWith('data:') ? p.image_url : '';
 
   document.getElementById('formTitle').innerText = '✏️ تعديل المنتج';
   document.getElementById('saveProdBtn').innerText = 'تحديث المنتج';
@@ -203,7 +219,7 @@ async function loadOrders() {
     const list = document.getElementById('ordersList');
     list.innerHTML = '';
 
-    if (!orders || orders.length === 0) {
+    if (!Array.isArray(orders) || orders.length === 0) {
       list.innerHTML = '<p>لا توجد طلبات جديدة.</p>';
       return;
     }
