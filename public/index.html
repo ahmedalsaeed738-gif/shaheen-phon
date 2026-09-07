@@ -8,41 +8,26 @@
 </head>
 <body>
 
-  <!-- الهيدر العلوي -->
   <header>
-    <div class="store-logo" id="storeName"> شاهين فون</div>
+    <div class="store-logo" id="storeName">شاهين فون</div>
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار..." oninput="searchProducts()">
-      <button>بحث</button>
+      <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار...">
+      <button onclick="searchProducts()">بحث</button>
     </div>
     <div class="cart-icon" onclick="toggleCart()">
       🛒 السلة (<span id="cartCount">0</span>)
     </div>
   </header>
 
-  <!-- بنر المتجر -->
   <div class="hero-section">
     <img id="storeBanner" src="https://via.placeholder.com/1200x300?text=Shaheen+Phone+Store" alt="بنر المتجر" class="hero-banner">
   </div>
 
-  <!-- أزرار التصفية حسب الأقسام -->
   <div class="container">
-    <div class="category-bar">
-      <button onclick="filterCategory('الكل')" class="cat-btn active">الكل</button>
-      <button onclick="filterCategory('هواتف')" class="cat-btn">هواتف</button>
-      <button onclick="filterCategory('شواحن')" class="cat-btn">شواحن</button>
-      <button onclick="filterCategory('سماعات')" class="cat-btn">سماعات</button>
-      <button onclick="filterCategory('جرابات')" class="cat-btn">جرابات</button>
-      <button onclick="filterCategory('ساعات')" class="cat-btn">ساعات</button>
-      <button onclick="filterCategory('إكسسوارات أخرى')" class="cat-btn">إكسسوارات أخرى</button>
-    </div>
-
-    <!-- شبكة المنتجات -->
-    <h2>أحدث المنتجات</h2>
+    <h2>أحدث الهواتف والإكسسوارات</h2>
     <div id="productsGrid" class="products-grid"></div>
   </div>
 
-  <!-- نافذة سلة الشراء -->
   <div id="cartModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="toggleCart()">&times;</span>

@@ -1,4 +1,3 @@
-let allProducts = [];
 let cart = [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchProducts() {
   try {
     const res = await fetch('/api/products');
-    allProducts = await res.json();
-    displayProducts(allProducts);
+    const products = await res.json();
+    displayProducts(products);
   } catch (err) {
     console.error('خطأ في جلب المنتجات:', err);
   }
@@ -19,8 +18,8 @@ function displayProducts(products) {
   const grid = document.getElementById('productsGrid');
   grid.innerHTML = '';
 
-  if (products.length === 0) {
-    grid.innerHTML = '<p>لا توجد منتجات متوفرة حالياً.</p>';
+  if (!products || products.length === 0) {
+    grid.innerHTML = '<p>لا توجد منتجات متاحة حالياً.</p>';
     return;
   }
 
@@ -30,30 +29,11 @@ function displayProducts(products) {
     card.innerHTML = `
       <img src="${p.image_url || 'https://via.placeholder.com/200'}" alt="${p.name}">
       <h3>${p.name}</h3>
-      <span class="badge">${p.category || 'عام'}</span>
       <div class="price">${p.price} جنيه</div>
       <button class="btn-primary" onclick="addToCart(${p.id}, '${p.name}', ${p.price})">إضافة للسلة 🛒</button>
     `;
     grid.appendChild(card);
   });
-}
-
-function filterCategory(category) {
-  document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
-
-  if (category === 'الكل') {
-    displayProducts(allProducts);
-  } else {
-    const filtered = allProducts.filter(p => p.category === category);
-    displayProducts(filtered);
-  }
-}
-
-function searchProducts() {
-  const term = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = allProducts.filter(p => p.name.toLowerCase().includes(term));
-  displayProducts(filtered);
 }
 
 function addToCart(id, name, price) {
@@ -116,7 +96,7 @@ async function submitOrder(e) {
     });
 
     if (res.ok) {
-      alert('تم إرسال طلبك بنجاح! سنتواصل معك قريباً.');
+      alert('تم إرسال طلبك بنجاح!');
       cart = [];
       updateCartUI();
       toggleCart();

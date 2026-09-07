@@ -5,23 +5,25 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-// تقديم ملفات الـ public (الواجهات)
+// تقديم ملفات الواجهة
 app.use(express.static(path.join(__dirname, 'public')));
 
-// الاتصال بقاعدة بيانات Neon
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
-});
+// الاتصال بقاعدة البيانات
+let pool;
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+}
 
-// إنشاء الجداول تلقائياً في قاعدة البيانات
+// إنشاء الجداول
 const initDB = async () => {
-  if (!process.env.DATABASE_URL) return;
+  if (!pool) return;
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
@@ -45,19 +47,16 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✅ تم تجهيز الجداول بنجاح');
   } catch (err) {
-    console.error('❌ خطأ في الجداول:', err.message);
+    console.error('DB Error:', err.message);
   }
 };
 
-initDB();
-
-// --- مسارات الـ API ---
-
-// جلب المنتجات
+// API
 app.get('/api/products', async (req, res) => {
+  if (!pool) return res.json([]);
   try {
+    await initDB();
     const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
@@ -65,10 +64,11 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// إضافة منتج
 app.post('/api/products', async (req, res) => {
+  if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { name, price, image_url, category } = req.body;
   try {
+    await initDB();
     const result = await pool.query(
       'INSERT INTO products (name, price, image_url, category) VALUES ($1, $2, $3, $4) RETURNING *',
       [name, price, image_url || 'https://via.placeholder.com/200', category || 'عام']
@@ -79,19 +79,10 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-// حذف منتج
-app.delete('/api/products/:id', async (req, res) => {
-  try {
-    await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
-    res.json({ message: 'تم الحذف بنجاح' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// جلب الطلبات
 app.get('/api/orders', async (req, res) => {
+  if (!pool) return res.json([]);
   try {
+    await initDB();
     const result = await pool.query('SELECT * FROM orders ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
@@ -99,10 +90,11 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// إضافة طلب من الزبون
 app.post('/api/orders', async (req, res) => {
+  if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { customer_name, customer_phone, customer_address, notes, items } = req.body;
   try {
+    await initDB();
     const result = await pool.query(
       'INSERT INTO orders (customer_name, customer_phone, customer_address, notes, items) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [customer_name, customer_phone, customer_address, notes, JSON.stringify(items)]
@@ -113,18 +105,12 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-// فتح لوحة التاجر
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// أي مسار تاني يفتح الواجهة الرئيسية
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 module.exports = app;
-
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}

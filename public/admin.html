@@ -7,44 +7,30 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
   <header>
-    <div class="store-logo">لوحة إدارة المتجر</div>
-    <a href="index.html" style="color: white; text-decoration: none; font-weight: bold;">العودة للمتجر</a>
+    <div class="store-logo">لوحة تحكم التاجر</div>
+    <a href="/" style="color: white; text-decoration: none;">الرجوع للمتجر ↗</a>
   </header>
 
   <div class="container">
-    <!-- نموذج إضافة منتج -->
-    <div class="admin-card">
+    <div class="admin-section">
       <h2>➕ إضافة منتج جديد</h2>
       <form id="addProductForm" onsubmit="handleAddProduct(event)">
         <input type="text" id="prodName" placeholder="اسم المنتج" required>
         <input type="number" id="prodPrice" placeholder="السعر (بالجنيه)" required>
-        
-        <select id="prodCategory" required>
-          <option value="هواتف">هواتف</option>
-          <option value="شواحن">شواحن</option>
-          <option value="سماعات">سماعات</option>
-          <option value="جرابات">جرابات</option>
-          <option value="ساعات">ساعات</option>
-          <option value="إكسسوارات أخرى">إكسسوارات أخرى</option>
-        </select>
-
-        <input type="text" id="prodImage" placeholder="رابط صورة المنتج (اختياري)">
-        <button type="submit" class="btn-primary">حفظ وإضافة المنتج</button>
+        <input type="url" id="prodImage" placeholder="رابط صورة المنتج">
+        <button type="submit" class="btn-primary">إضافة المنتج</button>
       </form>
     </div>
 
-    <!-- قائمة إدارة المنتجات الحالية -->
-    <div class="admin-card">
-      <h2>📦 المنتجات المتاحة</h2>
-      <div id="adminProductsList"></div>
+    <div class="admin-section" style="margin-top: 30px;">
+      <h2>📦 المنتجات الحالية</h2>
+      <div id="adminProductsGrid" class="products-grid"></div>
     </div>
 
-    <!-- قائمة الطلبات الواردة من الزبائن -->
-    <div class="admin-card">
-      <h2>📦 الطلبات الواردة من الزبائن</h2>
-      <div id="adminOrdersList"></div>
+    <div class="admin-section" style="margin-top: 30px;">
+      <h2>📋 الطلبات الواردة من الزبائن</h2>
+      <div id="ordersList"></div>
     </div>
   </div>
 
