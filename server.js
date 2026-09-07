@@ -194,6 +194,17 @@ app.put('/api/orders/:id/status', async (req, res) => {
   }
 });
 
+// مسار حذف الطلب
+app.delete('/api/orders/:id', async (req, res) => {
+  if (!pool) return res.status(400).json({ error: 'DB not connected' });
+  try {
+    await pool.query('DELETE FROM orders WHERE id = $1', [req.params.id]);
+    res.json({ message: 'تم حذف الطلب بنجاح' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });

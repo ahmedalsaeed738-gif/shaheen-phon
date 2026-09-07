@@ -1,5 +1,6 @@
 let allProducts = [];
 let cart = [];
+let productQuantities = {}; // لتخزين الكمية المحددة لكل منتج في الكارت الخارجي
 
 document.addEventListener('DOMContentLoaded', () => {
   loadStoreSettings();
@@ -19,6 +20,7 @@ async function fetchProducts() {
   try {
     const res = await fetch('/api/products');
     allProducts = await res.json();
+    allProducts.forEach(p => { productQuantities[p.id] = 1; });
     displayProducts(allProducts);
   } catch (err) { console.error(err); }
 }
@@ -35,16 +37,48 @@ function displayProducts(products) {
   products.forEach(p => {
     const card = document.createElement('div');
     card.className = 'product-card';
+    const currentQty = productQuantities[p.id] || 1;
+
     card.innerHTML = `
       <img src="${p.image_url || 'https://via.placeholder.com/200'}" alt="${p.name}" onclick="openProductModal(${p.id})">
       <span class="category-badge">${p.category || 'عام'}</span>
       <h3 onclick="openProductModal(${p.id})" style="cursor:pointer">${p.name}</h3>
       <div class="price">${p.price} جنيه</div>
       <div class="stock-tag">المخزون المتوفر: ${p.stock ?? 1}</div>
-      <button class="btn-primary" onclick="addToCart(${p.id}, '${p.name}', ${p.price}, ${p.stock ?? 1})">إضافة للسلة 🛒</button>
+      
+      <!-- أزرار زيادة ونقصان الكمية مباشرة من الخارج -->
+      <div style="margin: 10px 0; display:flex; justify-content:center; align-items:center; gap:10px;">
+        <button class="qty-btn" onclick="updateOuterQty(${p.id}, -1)">-</button>
+        <span id="outerQty_${p.id}" style="font-weight:bold; font-size:16px;">${currentQty}</span>
+        <button class="qty-btn" onclick="updateOuterQty(${p.id}, 1, ${p.stock ?? 1})">+</button>
+      </div>
+
+      <button class="btn-primary" onclick="addToCartFromOuter(${p.id})">إضافة للسلة 🛒</button>
     `;
     grid.appendChild(card);
   });
+}
+
+function updateOuterQty(id, delta, maxStock) {
+  if (!productQuantities[id]) productQuantities[id] = 1;
+  productQuantities[id] += delta;
+  
+  if (productQuantities[id] < 1) productQuantities[id] = 1;
+  if (maxStock && productQuantities[id] > maxStock) {
+    alert('عذراً، التحديد يتجاوز الكمية المتاحة بالمخزن!');
+    productQuantities[id] = maxStock;
+  }
+  
+  const span = document.getElementById(`outerQty_${id}`);
+  if (span) span.innerText = productQuantities[id];
+}
+
+function addToCartFromOuter(id) {
+  const p = allProducts.find(item => item.id === id);
+  if (!p) return;
+  const qty = productQuantities[id] || 1;
+  addToCart(p.id, p.name, p.price, p.stock ?? 1, qty);
+  alert(`تم إضافة ${qty} قطعة من (${p.name}) للسلة!`);
 }
 
 function filterProducts() {
@@ -72,48 +106,25 @@ function openProductModal(id) {
     <h3 style="color:#B12704;">${p.price} جنيه</h3>
     <p><strong>المخزون المتاح:</strong> ${p.stock ?? 1} قطعة</p>
     <p style="margin-top:15px; line-height:1.6;">${p.description || 'لا يوجد وصف لهذا المنتج.'}</p>
-    
-    <div style="margin: 15px 0; display:flex; gap:10px; align-items:center;">
-      <button class="qty-btn" onclick="changeTempQty(-1)">-</button>
-      <span id="modalTempQty" style="font-weight:bold; font-size:18px;">1</span>
-      <button class="qty-btn" onclick="changeTempQty(1, ${p.stock ?? 1})">+</button>
-    </div>
 
-    <button class="btn-primary" onclick="addFromModal(${p.id}, '${p.name}', ${p.price}, ${p.stock ?? 1})">إضافة للسلة 🛒</button>
+    <button class="btn-primary" onclick="addToCartFromOuter(${p.id}); closeModal('productDetailModal');">إضافة للسلة 🛒</button>
     <button class="btn-primary" style="background:#6c757d; border-color:#6c757d; margin-top:8px;" onclick="closeModal('productDetailModal')">الرجوع للمتجر ↩️</button>
   `;
 
   document.getElementById('productDetailModal').style.display = 'flex';
 }
 
-let tempQty = 1;
-function changeTempQty(delta, maxStock) {
-  tempQty += delta;
-  if (tempQty < 1) tempQty = 1;
-  if (maxStock && tempQty > maxStock) {
-    alert('عذراً، لقد تجاوزت الكمية المتاحة بالمخزن!');
-    tempQty = maxStock;
-  }
-  document.getElementById('modalTempQty').innerText = tempQty;
-}
-
-function addFromModal(id, name, price, stock) {
-  addToCart(id, name, price, stock, tempQty);
-  tempQty = 1;
-  closeModal('productDetailModal');
-}
-
 function addToCart(id, name, price, maxStock, qtyToAdd = 1) {
   const existing = cart.find(item => item.id === id);
   if (existing) {
     if (existing.qty + qtyToAdd > maxStock) {
-      alert('الكمية المطلوبة تتجاوز المخزون!');
+      alert('الكمية المطلوبة تتجاوز المخزون المتاح!');
       return;
     }
     existing.qty += qtyToAdd;
   } else {
     if (qtyToAdd > maxStock) {
-      alert('الكمية المطلوبة تتجاوز المخزون!');
+      alert('الكمية المطلوبة تتجاوز المخزون المتاح!');
       return;
     }
     cart.push({ id, name, price, qty: qtyToAdd, maxStock });

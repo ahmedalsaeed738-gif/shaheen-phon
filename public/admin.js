@@ -102,7 +102,14 @@ async function handleSaveProduct(e) {
   const imageFile = document.getElementById('prodImageFile').files[0];
 
   let image_url = null;
-  if (imageFile) image_url = await fileToBase64(imageFile);
+  if (imageFile) {
+    try {
+      image_url = await fileToBase64(imageFile);
+    } catch (err) {
+      alert('حدث خطأ في قراءة الصورة');
+      return;
+    }
+  }
 
   const payload = { name, price, stock, category, description, image_url };
 
@@ -112,11 +119,17 @@ async function handleSaveProduct(e) {
       : await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
     if (res.ok) {
-      alert(id ? 'تم تعديل المنتج!' : 'تم إضافة المنتج!');
+      alert(id ? 'تم تعديل المنتج بنجاح!' : 'تم إضافة المنتج بنجاح!');
       resetProductForm();
       loadAdminProducts();
+    } else {
+      const errData = await res.json();
+      alert('حدث خطأ أثناء الحفظ: ' + (errData.error || 'تأكد من الاتصال بقاعدة البيانات'));
     }
-  } catch (err) { console.error(err); }
+  } catch (err) { 
+    console.error(err);
+    alert('حدث خطأ بالاتصال مع السيرفر.');
+  }
 }
 
 function editProduct(id) {
@@ -169,7 +182,10 @@ async function loadOrders() {
       const card = document.createElement('div');
       card.className = 'order-card';
       card.innerHTML = `
-        <h4>طلب رقم #${o.id} - العميل: ${o.customer_name}</h4>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h4>طلب رقم #${o.id} - العميل: ${o.customer_name}</h4>
+          <button style="background:#d9534f; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;" onclick="deleteOrder(${o.id})">حذف الطلب 🗑️</button>
+        </div>
         <p>📱 الهاتف: ${o.customer_phone}</p>
         <p>📍 العنوان: ${o.customer_address}</p>
         <p>📝 ملاحظات: ${o.notes || 'لا يوجد'}</p>
@@ -193,5 +209,17 @@ async function updateOrderStatus(id, status) {
       body: JSON.stringify({ status })
     });
     alert('تم تحديث حالة الطلب بنجاح');
+  } catch (err) { console.error(err); }
+}
+
+// دالة حذف الطلب عند الاكتفاء منه
+async function deleteOrder(id) {
+  if (!confirm('هل تأكدت من حذف هذا الطلب نهائياً؟')) return;
+  try {
+    const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      alert('تم حذف الطلب بنجاح');
+      loadOrders();
+    }
   } catch (err) { console.error(err); }
 }
