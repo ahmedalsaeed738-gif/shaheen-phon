@@ -10,57 +10,39 @@
 
   <!-- الهيدر العلوي -->
   <header>
-    <div class="store-logo" id="storeName">شاهين فون</div>
-    
+    <div class="store-logo" id="storeName"> شاهين فون</div>
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار..." onkeyup="filterProducts()">
-      <button onclick="filterProducts()">بحث</button>
+      <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار..." oninput="searchProducts()">
+      <button>بحث</button>
     </div>
-
-    <div class="header-actions">
-      <button class="admin-btn" onclick="openAdminPage()">⚙️ لوحة التاجر</button>
-      <div class="cart-icon" onclick="toggleCart()">
-        🛒 السلة (<span id="cartCount">0</span>)
-      </div>
+    <div class="cart-icon" onclick="toggleCart()">
+      🛒 السلة (<span id="cartCount">0</span>)
     </div>
   </header>
 
-  <!-- بنر واجهة المتجر -->
+  <!-- بنر المتجر -->
   <div class="hero-section">
     <img id="storeBanner" src="https://via.placeholder.com/1200x300?text=Shaheen+Phone+Store" alt="بنر المتجر" class="hero-banner">
   </div>
 
-  <!-- المحتوى الرئيسي -->
+  <!-- أزرار التصفية حسب الأقسام -->
   <div class="container">
-    
-    <!-- قسم الفلترة والتصفية -->
-    <div class="filter-section">
-      <div class="filter-group">
-        <label>الفئة:</label>
-        <select id="categoryFilter" onchange="filterProducts()">
-          <option value="all">كل المنتجات</option>
-          <option value="phones">هواتف</option>
-          <option value="accessories">إكسسوارات</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label>ترتيب حسب السعر:</label>
-        <select id="priceSort" onchange="filterProducts()">
-          <option value="default">الافتراضي</option>
-          <option value="low-high">من الأقل للأعلى</option>
-          <option value="high-low">من الأعلى للأقل</option>
-        </select>
-      </div>
+    <div class="category-bar">
+      <button onclick="filterCategory('الكل')" class="cat-btn active">الكل</button>
+      <button onclick="filterCategory('هواتف')" class="cat-btn">هواتف</button>
+      <button onclick="filterCategory('شواحن')" class="cat-btn">شواحن</button>
+      <button onclick="filterCategory('سماعات')" class="cat-btn">سماعات</button>
+      <button onclick="filterCategory('جرابات')" class="cat-btn">جرابات</button>
+      <button onclick="filterCategory('ساعات')" class="cat-btn">ساعات</button>
+      <button onclick="filterCategory('إكسسوارات أخرى')" class="cat-btn">إكسسوارات أخرى</button>
     </div>
 
-    <h2>أحدث الهواتف والإكسسوارات</h2>
-    <div id="productsGrid" class="products-grid">
-      <!-- المنتجات ستظهر هنا تلقائياً -->
-    </div>
+    <!-- شبكة المنتجات -->
+    <h2>أحدث المنتجات</h2>
+    <div id="productsGrid" class="products-grid"></div>
   </div>
 
-  <!-- نافذة السلة والطلب -->
+  <!-- نافذة سلة الشراء -->
   <div id="cartModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="toggleCart()">&times;</span>

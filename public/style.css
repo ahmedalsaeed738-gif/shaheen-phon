@@ -15,7 +15,6 @@ body {
   direction: rtl;
 }
 
-/* الهيدر العلوي */
 header {
   background-color: var(--primary-color);
   color: white;
@@ -50,31 +49,8 @@ header {
   background: var(--accent-color);
   border: none;
   padding: 10px 20px;
-  cursor: pointer;
   border-radius: 0 4px 4px 0;
   font-weight: bold;
-}
-
-/* الأزرار في الهيدر */
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.admin-btn {
-  background: #37475a;
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.admin-btn:hover {
-  background: #485769;
 }
 
 .cart-icon {
@@ -85,45 +61,41 @@ header {
   font-weight: bold;
 }
 
-/* بنر الواجهة */
 .hero-banner {
   width: 100%;
-  height: 250px;
+  height: 220px;
   object-fit: cover;
   display: block;
 }
 
-/* قسم الفلترة */
-.filter-section {
-  background: white;
-  padding: 15px 20px;
-  border-radius: 8px;
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.filter-group select {
-  padding: 8px 12px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  outline: none;
-  font-family: inherit;
-}
-
-/* شبكة المنتجات */
 .container {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.category-bar {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-top: 15px;
+}
+
+.cat-btn {
+  background: white;
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: bold;
+}
+
+.cat-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
 }
 
 .products-grid {
@@ -148,15 +120,19 @@ header {
   width: 100%;
   height: 180px;
   object-fit: contain;
-  border-radius: 4px;
 }
 
-.product-card h3 {
-  font-size: 16px;
-  margin: 10px 0 5px;
+.badge {
+  background: #e7f0fe;
+  color: #1a73e8;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  align-self: center;
+  margin: 5px 0;
 }
 
-.product-card .price {
+.price {
   font-size: 18px;
   font-weight: bold;
   color: #B12704;
@@ -171,10 +147,42 @@ header {
   cursor: pointer;
   font-weight: bold;
   width: 100%;
-  margin-top: 10px;
 }
 
-/* نافذة السلة والطلب (Modal) */
+.admin-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.admin-card input, .admin-card select, .admin-card textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.admin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 .modal {
   display: none;
   position: fixed;
@@ -205,14 +213,4 @@ header {
   left: 15px;
   font-size: 24px;
   cursor: pointer;
-  font-weight: bold;
-}
-
-#checkoutForm input, #checkoutForm textarea {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-sizing: border-box;
 }

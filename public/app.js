@@ -2,27 +2,9 @@ let allProducts = [];
 let cart = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadStoreSettings();
   fetchProducts();
 });
 
-// جلب وتحديث إعدادات اسم المتجر والبانر الرئيسي
-async function loadStoreSettings() {
-  try {
-    const res = await fetch('/api/settings');
-    const settings = await res.json();
-    if (settings.name) {
-      document.getElementById('storeName').innerText = settings.name;
-    }
-    if (settings.bannerUrl) {
-      document.getElementById('storeBanner').src = settings.bannerUrl;
-    }
-  } catch (err) {
-    console.error('خطأ في جلب إعدادات المتجر:', err);
-  }
-}
-
-// جلب المنتجات من السيرفر
 async function fetchProducts() {
   try {
     const res = await fetch('/api/products');
@@ -33,13 +15,12 @@ async function fetchProducts() {
   }
 }
 
-// عرض المنتجات في الواجهة
 function displayProducts(products) {
   const grid = document.getElementById('productsGrid');
   grid.innerHTML = '';
 
-  if (!products || products.length === 0) {
-    grid.innerHTML = '<p>لا توجد منتجات مطابقة للبحث.</p>';
+  if (products.length === 0) {
+    grid.innerHTML = '<p>لا توجد منتجات متوفرة حالياً.</p>';
     return;
   }
 
@@ -49,6 +30,7 @@ function displayProducts(products) {
     card.innerHTML = `
       <img src="${p.image_url || 'https://via.placeholder.com/200'}" alt="${p.name}">
       <h3>${p.name}</h3>
+      <span class="badge">${p.category || 'عام'}</span>
       <div class="price">${p.price} جنيه</div>
       <button class="btn-primary" onclick="addToCart(${p.id}, '${p.name}', ${p.price})">إضافة للسلة 🛒</button>
     `;
@@ -56,38 +38,24 @@ function displayProducts(products) {
   });
 }
 
-// محرك البحث والفلترة حسب الفئة والتصفية
-function filterProducts() {
-  const query = document.getElementById('searchInput').value.toLowerCase();
-  const category = document.getElementById('categoryFilter').value;
-  const sort = document.getElementById('priceSort').value;
+function filterCategory(category) {
+  document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
 
-  let filtered = allProducts.filter(p => {
-    const matchesName = p.name.toLowerCase().includes(query);
-    const matchesCategory = (category === 'all') || (p.category === category);
-    return matchesName && matchesCategory;
-  });
-
-  if (sort === 'low-high') {
-    filtered.sort((a, b) => a.price - b.price);
-  } else if (sort === 'high-low') {
-    filtered.sort((a, b) => b.price - a.price);
+  if (category === 'الكل') {
+    displayProducts(allProducts);
+  } else {
+    const filtered = allProducts.filter(p => p.category === category);
+    displayProducts(filtered);
   }
+}
 
+function searchProducts() {
+  const term = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allProducts.filter(p => p.name.toLowerCase().includes(term));
   displayProducts(filtered);
 }
 
-// فتح لوحة التحكم بعد التحقق من كلمة السر
-function openAdminPage() {
-  const password = prompt("أدخل كلمة السر الخاصة بالتاجر:");
-  if (password === "123456") {
-    window.location.href = "admin.html";
-  } else if (password !== null) {
-    alert("كلمة السر غير صحيحة!");
-  }
-}
-
-// إضافة منتج إلى سلة الشراء
 function addToCart(id, name, price) {
   const existing = cart.find(item => item.id === id);
   if (existing) {
@@ -98,7 +66,6 @@ function addToCart(id, name, price) {
   updateCartUI();
 }
 
-// تحديث واجهة السلة والعداد
 function updateCartUI() {
   const cartCount = document.getElementById('cartCount');
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -121,13 +88,11 @@ function updateCartUI() {
   cartItemsDiv.innerHTML = html;
 }
 
-// فتح/إغلاق نافذة السلة
 function toggleCart() {
   const modal = document.getElementById('cartModal');
   modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
 }
 
-// إرسال الطلب للسيرفر
 async function submitOrder(e) {
   e.preventDefault();
   if (cart.length === 0) {
@@ -151,7 +116,7 @@ async function submitOrder(e) {
     });
 
     if (res.ok) {
-      alert('تم إرسال طلبك بنجاح!');
+      alert('تم إرسال طلبك بنجاح! سنتواصل معك قريباً.');
       cart = [];
       updateCartUI();
       toggleCart();
