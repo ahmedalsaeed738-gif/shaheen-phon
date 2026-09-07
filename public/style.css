@@ -34,7 +34,7 @@ header {
 .search-bar {
   flex: 1;
   display: flex;
-  max-width: 600px;
+  max-width: 500px;
 }
 
 .search-bar input {
@@ -43,6 +43,21 @@ header {
   border: none;
   border-radius: 4px;
   outline: none;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-track {
+  background: var(--accent-color);
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 .cart-icon {
@@ -71,7 +86,6 @@ header {
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
-  font-weight: bold;
 }
 
 .filter-section select {
@@ -110,7 +124,13 @@ header {
   font-size: 18px;
   font-weight: bold;
   color: #B12704;
-  margin: 10px 0;
+  margin: 5px 0;
+}
+
+.stock-tag {
+  font-size: 13px;
+  color: #2e7d32;
+  margin-bottom: 5px;
 }
 
 .category-badge {
@@ -120,7 +140,6 @@ header {
   padding: 3px 8px;
   border-radius: 12px;
   font-size: 12px;
-  margin-bottom: 5px;
 }
 
 .btn-primary {
@@ -163,6 +182,16 @@ header {
   left: 15px;
   font-size: 24px;
   cursor: pointer;
+}
+
+.qty-btn {
+  background: #ddd;
+  border: none;
+  padding: 5px 12px;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
 .admin-section {

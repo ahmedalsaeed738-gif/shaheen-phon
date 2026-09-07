@@ -9,7 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 let pool;
@@ -28,6 +27,7 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price NUMERIC NOT NULL,
+        stock INT DEFAULT 1,
         image_url TEXT,
         category VARCHAR(100) DEFAULT 'عام',
         description TEXT
@@ -65,7 +65,7 @@ const initDB = async () => {
   }
 };
 
-// --- API الإعدادات ---
+// الإعدادات
 app.get('/api/settings', async (req, res) => {
   if (!pool) return res.json({ store_name: 'شاهين فون', banner_url: '' });
   try {
@@ -92,7 +92,7 @@ app.post('/api/settings', async (req, res) => {
   }
 });
 
-// --- API المنتجات ---
+// المنتجات
 app.get('/api/products', async (req, res) => {
   if (!pool) return res.json([]);
   try {
@@ -104,25 +104,14 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-app.get('/api/products/:id', async (req, res) => {
-  if (!pool) return res.status(404).json({ error: 'Not found' });
-  try {
-    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'المنتج غير موجود' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 app.post('/api/products', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
-  const { name, price, image_url, category, description } = req.body;
+  const { name, price, stock, image_url, category, description } = req.body;
   try {
     await initDB();
     const result = await pool.query(
-      'INSERT INTO products (name, price, image_url, category, description) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [name, price, image_url || 'https://via.placeholder.com/200', category || 'عام', description || '']
+      'INSERT INTO products (name, price, stock, image_url, category, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name, price, stock || 1, image_url || 'https://via.placeholder.com/200', category || 'عام', description || '']
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -132,12 +121,12 @@ app.post('/api/products', async (req, res) => {
 
 app.put('/api/products/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
-  const { name, price, image_url, category, description } = req.body;
+  const { name, price, stock, image_url, category, description } = req.body;
   try {
     await initDB();
     const result = await pool.query(
-      `UPDATE products SET name=$1, price=$2, image_url=COALESCE($3, image_url), category=$4, description=$5 WHERE id=$6 RETURNING *`,
-      [name, price, image_url, category || 'عام', description || '', req.params.id]
+      `UPDATE products SET name=$1, price=$2, stock=$3, image_url=COALESCE($4, image_url), category=$5, description=$6 WHERE id=$7 RETURNING *`,
+      [name, price, stock || 1, image_url, category || 'عام', description || '', req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -155,12 +144,23 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-// --- API الطلبات ---
+// الطلبات والتتبع
 app.get('/api/orders', async (req, res) => {
   if (!pool) return res.json([]);
   try {
     await initDB();
     const result = await pool.query('SELECT * FROM orders ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/orders/track/:phone', async (req, res) => {
+  if (!pool) return res.json([]);
+  try {
+    await initDB();
+    const result = await pool.query('SELECT * FROM orders WHERE customer_phone = $1 ORDER BY id DESC', [req.params.phone]);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -176,6 +176,18 @@ app.post('/api/orders', async (req, res) => {
       'INSERT INTO orders (customer_name, customer_phone, customer_address, notes, items) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [customer_name, customer_phone, customer_address, notes, JSON.stringify(items)]
     );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/orders/:id/status', async (req, res) => {
+  if (!pool) return res.status(400).json({ error: 'DB not connected' });
+  const { status } = req.body;
+  try {
+    await initDB();
+    const result = await pool.query('UPDATE orders SET status = $1 WHERE id = $2 RETURNING *', [status, req.params.id]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

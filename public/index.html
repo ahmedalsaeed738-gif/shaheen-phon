@@ -13,8 +13,11 @@
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار..." onkeyup="filterProducts()">
     </div>
-    <div class="cart-icon" onclick="toggleCart()">
-      🛒 السلة (<span id="cartCount">0</span>)
+    <div class="header-actions">
+      <button class="btn-track" onclick="toggleModal('trackModal')">📱 تتبع الطلب</button>
+      <div class="cart-icon" onclick="toggleModal('cartModal')">
+        🛒 السلة (<span id="cartCount">0</span>)
+      </div>
     </div>
   </header>
 
@@ -24,13 +27,15 @@
 
   <div class="container">
     <div class="filter-section">
-      <label>فلترة حسب القسم: </label>
+      <label><b>فلترة الأقسام:</b> </label>
       <select id="categoryFilter" onchange="filterProducts()">
         <option value="الكل">الكل</option>
         <option value="هواتف">هواتف</option>
+        <option value="شواحن">شواحن</option>
+        <option value="سماعات">سماعات</option>
+        <option value="ساعات">ساعات</option>
+        <option value="جرابات">جرابات</option>
         <option value="إكسسوارات">إكسسوارات</option>
-        <option value="شواحن وكوابل">شواحن وكوابل</option>
-        <option value="ساعات ذكية">ساعات ذكية</option>
         <option value="عام">عام</option>
       </select>
     </div>
@@ -39,22 +44,33 @@
     <div id="productsGrid" class="products-grid"></div>
   </div>
 
-  <!-- مودال تفاصيل المنتج -->
+  <!-- نافذة تفاصيل المنتج -->
   <div id="productDetailModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="closeProductModal()">&times;</span>
+      <span class="close" onclick="closeModal('productDetailModal')">&times;</span>
       <div id="productModalBody"></div>
     </div>
   </div>
 
-  <!-- مودال السلة -->
+  <!-- نافذة تتبع الطلب -->
+  <div id="trackModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('trackModal')">&times;</span>
+      <h3>📱 تتبع طلبك</h3>
+      <input type="tel" id="trackPhoneInput" placeholder="أدخل رقم الهاتف المسجل به الطلب">
+      <button class="btn-primary" onclick="trackOrders()">بحث عن الطلبات</button>
+      <div id="trackResults" style="margin-top:15px;"></div>
+    </div>
+  </div>
+
+  <!-- نافذة السلة -->
   <div id="cartModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="toggleCart()">&times;</span>
-      <h3>سلة الشراء</h3>
+      <span class="close" onclick="closeModal('cartModal')">&times;</span>
+      <h3>🛒 سلة الشراء</h3>
       <div id="cartItems"></div>
       <hr>
-      <h3>بيانات التوصيل (Checkout)</h3>
+      <h3>بيانات التوصيل</h3>
       <form id="checkoutForm" onsubmit="submitOrder(event)">
         <input type="text" id="custName" placeholder="الاسم بالكامل" required>
         <input type="tel" id="custPhone" placeholder="رقم الهاتف" required>

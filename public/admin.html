@@ -7,58 +7,78 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div class="store-logo">لوحة تحكم التاجر</div>
-    <a href="/" style="color: white; text-decoration: none;">الرجوع للمتجر ↗</a>
-  </header>
-
-  <div class="container">
-    <!-- إعدادات المتجر -->
-    <div class="admin-section">
-      <h2>⚙️ إعدادات المتجر (الاسم والبنر)</h2>
-      <form id="settingsForm" onsubmit="handleSaveSettings(event)">
-        <input type="text" id="settingStoreName" placeholder="اسم المتجر">
-        <label>صورة بنر المتجر (من الجهاز):</label>
-        <input type="file" id="settingBannerFile" accept="image/*">
-        <button type="submit" class="btn-primary">حفظ إعدادات المتجر</button>
+  <!-- شاشة تسجيل الدخول -->
+  <div id="loginScreen" class="modal" style="display: flex;">
+    <div class="modal-content" style="text-align: center;">
+      <h2>🔒 تسجيل دخول الأدمن</h2>
+      <p>أدخل اسم المستخدم وكلمة السر للوصول للوحة</p>
+      <form onsubmit="handleLogin(event)">
+        <input type="text" id="adminUser" placeholder="اسم المستخدم" required>
+        <input type="password" id="adminPass" placeholder="كلمة السر" required>
+        <button type="submit" class="btn-primary">دخول</button>
       </form>
     </div>
+  </div>
 
-    <!-- إضافة / تعديل منتج -->
-    <div class="admin-section" style="margin-top: 30px;">
-      <h2 id="formTitle">➕ إضافة منتج جديد</h2>
-      <form id="productForm" onsubmit="handleSaveProduct(event)">
-        <input type="hidden" id="editProductId">
-        <input type="text" id="prodName" placeholder="اسم المنتج" required>
-        <input type="number" id="prodPrice" placeholder="السعر (بالجنيه)" required>
-        
-        <label>القسم:</label>
-        <select id="prodCategory">
-          <option value="عام">عام</option>
-          <option value="هواتف">هواتف</option>
-          <option value="إكسسوارات">إكسسوارات</option>
-          <option value="شواحن وكوابل">شواحن وكوابل</option>
-          <option value="ساعات ذكية">ساعات ذكية</option>
-        </select>
+  <!-- لوحة التحكم الرئيسية -->
+  <div id="adminMainContent" style="display: none;">
+    <header>
+      <div class="store-logo">لوحة تحكم التاجر</div>
+      <div>
+        <a href="/" style="color: white; margin-left:15px; text-decoration: none;">الرجوع للمتجر ↗</a>
+        <button onclick="logoutAdmin()" style="background:#d9534f; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">خروج</button>
+      </div>
+    </header>
 
-        <label style="margin-top:10px; display:block;">صورة المنتج (من جهازك):</label>
-        <input type="file" id="prodImageFile" accept="image/*">
+    <div class="container">
+      <div class="admin-section">
+        <h2>⚙️ إعدادات المتجر (الاسم والبنر)</h2>
+        <form id="settingsForm" onsubmit="handleSaveSettings(event)">
+          <input type="text" id="settingStoreName" placeholder="اسم المتجر">
+          <label>بنر المتجر (صورة من جهازك):</label>
+          <input type="file" id="settingBannerFile" accept="image/*">
+          <button type="submit" class="btn-primary">حفظ إعدادات المتجر</button>
+        </form>
+      </div>
 
-        <textarea id="prodDesc" placeholder="تفاصيل ومواصفات المنتج..." rows="3"></textarea>
-        
-        <button type="submit" id="saveProdBtn" class="btn-primary">حفظ المنتج</button>
-        <button type="button" id="cancelEditBtn" class="btn-primary" style="background:#6c757d; display:none; margin-top:5px;" onclick="resetProductForm()">إلغاء التعديل</button>
-      </form>
-    </div>
+      <div class="admin-section" style="margin-top: 30px;">
+        <h2 id="formTitle">➕ إضافة / تعديل منتج</h2>
+        <form id="productForm" onsubmit="handleSaveProduct(event)">
+          <input type="hidden" id="editProductId">
+          <input type="text" id="prodName" placeholder="اسم المنتج" required>
+          <input type="number" id="prodPrice" placeholder="السعر (بالجنيه)" required>
+          <input type="number" id="prodStock" placeholder="الكمية في المخزن" value="1" min="0" required>
+          
+          <label>القسم:</label>
+          <select id="prodCategory">
+            <option value="عام">عام</option>
+            <option value="هواتف">هواتف</option>
+            <option value="شواحن">شواحن</option>
+            <option value="سماعات">سماعات</option>
+            <option value="ساعات">ساعات</option>
+            <option value="جرابات">جرابات</option>
+            <option value="إكسسوارات">إكسسوارات</option>
+          </select>
 
-    <div class="admin-section" style="margin-top: 30px;">
-      <h2>📦 المنتجات الحالية</h2>
-      <div id="adminProductsGrid" class="products-grid"></div>
-    </div>
+          <label style="margin-top:10px; display:block;">صورة المنتج (من جهازك):</label>
+          <input type="file" id="prodImageFile" accept="image/*">
 
-    <div class="admin-section" style="margin-top: 30px;">
-      <h2>📋 الطلبات الواردة من الزبائن</h2>
-      <div id="ordersList"></div>
+          <textarea id="prodDesc" placeholder="مواصفات وتفاصيل المنتج..." rows="3"></textarea>
+          
+          <button type="submit" id="saveProdBtn" class="btn-primary">حفظ المنتج</button>
+          <button type="button" id="cancelEditBtn" class="btn-primary" style="background:#6c757d; display:none; margin-top:5px;" onclick="resetProductForm()">إلغاء التعديل</button>
+        </form>
+      </div>
+
+      <div class="admin-section" style="margin-top: 30px;">
+        <h2>📦 المنتجات الحالية والمخزون</h2>
+        <div id="adminProductsGrid" class="products-grid"></div>
+      </div>
+
+      <div class="admin-section" style="margin-top: 30px;">
+        <h2>📋 الطلبات الواردة وتغيير حالتها</h2>
+        <div id="ordersList"></div>
+      </div>
     </div>
   </div>
 

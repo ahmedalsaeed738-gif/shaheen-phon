@@ -1,12 +1,37 @@
 let adminProducts = [];
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('shaheen_admin_logged') === 'true') {
+    showAdminDashboard();
+  }
+});
+
+function handleLogin(e) {
+  e.preventDefault();
+  const u = document.getElementById('adminUser').value;
+  const p = document.getElementById('adminPass').value;
+
+  if (u === 'shaheen-phon' && p === 'shaheen-1983') {
+    localStorage.setItem('shaheen_admin_logged', 'true');
+    showAdminDashboard();
+  } else {
+    alert('اسم المستخدم أو كلمة السر غير صحيحة!');
+  }
+}
+
+function showAdminDashboard() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminMainContent').style.display = 'block';
   loadSettings();
   loadAdminProducts();
   loadOrders();
-});
+}
 
-// تحويل الملف المرفوع لترميز Base64
+function logoutAdmin() {
+  localStorage.removeItem('shaheen_admin_logged');
+  location.reload();
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -20,12 +45,8 @@ async function loadSettings() {
   try {
     const res = await fetch('/api/settings');
     const settings = await res.json();
-    if (settings.store_name) {
-      document.getElementById('settingStoreName').value = settings.store_name;
-    }
-  } catch (err) {
-    console.error(err);
-  }
+    if (settings.store_name) document.getElementById('settingStoreName').value = settings.store_name;
+  } catch (err) { console.error(err); }
 }
 
 async function handleSaveSettings(e) {
@@ -34,9 +55,7 @@ async function handleSaveSettings(e) {
   const bannerFile = document.getElementById('settingBannerFile').files[0];
 
   let banner_url = null;
-  if (bannerFile) {
-    banner_url = await fileToBase64(bannerFile);
-  }
+  if (bannerFile) banner_url = await fileToBase64(bannerFile);
 
   try {
     const res = await fetch('/api/settings', {
@@ -44,13 +63,8 @@ async function handleSaveSettings(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ store_name, banner_url })
     });
-
-    if (res.ok) {
-      alert('تم حفظ إعدادات المتجر بنجاح!');
-    }
-  } catch (err) {
-    console.error(err);
-  }
+    if (res.ok) alert('تم حفظ إعدادات المتجر بنجاح!');
+  } catch (err) { console.error(err); }
 }
 
 async function loadAdminProducts() {
@@ -60,11 +74,6 @@ async function loadAdminProducts() {
     const grid = document.getElementById('adminProductsGrid');
     grid.innerHTML = '';
 
-    if (!adminProducts || adminProducts.length === 0) {
-      grid.innerHTML = '<p>لا توجد منتجات حتى الآن.</p>';
-      return;
-    }
-
     adminProducts.forEach(p => {
       const card = document.createElement('div');
       card.className = 'product-card';
@@ -73,14 +82,13 @@ async function loadAdminProducts() {
         <span class="category-badge">${p.category || 'عام'}</span>
         <h3>${p.name}</h3>
         <div class="price">${p.price} جنيه</div>
-        <button class="btn-primary" style="background:#0275d8; border-color:#0267bf; margin-bottom:5px;" onclick="editProduct(${p.id})">تعديل المنتج ✏️</button>
-        <button class="btn-primary" style="background:#d9534f; border-color:#d43f3a;" onclick="deleteProduct(${p.id})">حذف المنتج 🗑️</button>
+        <div class="stock-tag">المخزون: ${p.stock ?? 1} قطعة</div>
+        <button class="btn-primary" style="background:#0275d8; margin-bottom:5px;" onclick="editProduct(${p.id})">تعديل ✏️</button>
+        <button class="btn-primary" style="background:#d9534f;" onclick="deleteProduct(${p.id})">حذف 🗑️</button>
       `;
       grid.appendChild(card);
     });
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 async function handleSaveProduct(e) {
@@ -88,41 +96,27 @@ async function handleSaveProduct(e) {
   const id = document.getElementById('editProductId').value;
   const name = document.getElementById('prodName').value;
   const price = document.getElementById('prodPrice').value;
+  const stock = document.getElementById('prodStock').value;
   const category = document.getElementById('prodCategory').value;
   const description = document.getElementById('prodDesc').value;
   const imageFile = document.getElementById('prodImageFile').files[0];
 
   let image_url = null;
-  if (imageFile) {
-    image_url = await fileToBase64(imageFile);
-  }
+  if (imageFile) image_url = await fileToBase64(imageFile);
 
-  const payload = { name, price, category, description, image_url };
+  const payload = { name, price, stock, category, description, image_url };
 
   try {
-    let res;
-    if (id) {
-      res = await fetch(`/api/products/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    } else {
-      res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    }
+    let res = id 
+      ? await fetch(`/api/products/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      : await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
     if (res.ok) {
-      alert(id ? 'تم تعديل المنتج بنجاح!' : 'تم إضافة المنتج بنجاح!');
+      alert(id ? 'تم تعديل المنتج!' : 'تم إضافة المنتج!');
       resetProductForm();
       loadAdminProducts();
     }
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 function editProduct(id) {
@@ -132,6 +126,7 @@ function editProduct(id) {
   document.getElementById('editProductId').value = p.id;
   document.getElementById('prodName').value = p.name;
   document.getElementById('prodPrice').value = p.price;
+  document.getElementById('prodStock').value = p.stock ?? 1;
   document.getElementById('prodCategory').value = p.category || 'عام';
   document.getElementById('prodDesc').value = p.description || '';
 
@@ -151,15 +146,11 @@ function resetProductForm() {
 }
 
 async function deleteProduct(id) {
-  if (!confirm('هل أنت تأكد من حذف هذا المنتج؟')) return;
+  if (!confirm('هل تأكدت من حذف هذا المنتج؟')) return;
   try {
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      loadAdminProducts();
-    }
-  } catch (err) {
-    console.error(err);
-  }
+    if (res.ok) loadAdminProducts();
+  } catch (err) { console.error(err); }
 }
 
 async function loadOrders() {
@@ -182,10 +173,25 @@ async function loadOrders() {
         <p>📱 الهاتف: ${o.customer_phone}</p>
         <p>📍 العنوان: ${o.customer_address}</p>
         <p>📝 ملاحظات: ${o.notes || 'لا يوجد'}</p>
+        <label>تحديث حالة الطلب: </label>
+        <select onchange="updateOrderStatus(${o.id}, this.value)">
+          <option value="قيد الانتظار" ${o.status === 'قيد الانتظار' ? 'selected' : ''}>قيد الانتظار</option>
+          <option value="تم الشحن" ${o.status === 'تم الشحن' ? 'selected' : ''}>تم الشحن</option>
+          <option value="تم التسليم" ${o.status === 'تم التسليم' ? 'selected' : ''}>تم التسليم</option>
+        </select>
       `;
       list.appendChild(card);
     });
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
+}
+
+async function updateOrderStatus(id, status) {
+  try {
+    await fetch(`/api/orders/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    alert('تم تحديث حالة الطلب بنجاح');
+  } catch (err) { console.error(err); }
 }
