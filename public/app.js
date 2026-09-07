@@ -1,7 +1,6 @@
-// المتغيرات الأساسية
+let allProducts = [];
 let cart = [];
 
-// تحميل المنتجات عند فتح الصفحة
 document.addEventListener('DOMContentLoaded', () => {
   fetchProducts();
 });
@@ -10,20 +9,20 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchProducts() {
   try {
     const res = await fetch('/api/products');
-    const products = await res.json();
-    displayProducts(products);
+    allProducts = await res.json();
+    displayProducts(allProducts);
   } catch (err) {
     console.error('خطأ في جلب المنتجات:', err);
   }
 }
 
-// عرض المنتجات في الصفحة
+// عرض المنتجات
 function displayProducts(products) {
   const grid = document.getElementById('productsGrid');
   grid.innerHTML = '';
 
-  if (products.length === 0) {
-    grid.innerHTML = '<p>لا توجد منتجات متاحة حالياً.</p>';
+  if (!products || products.length === 0) {
+    grid.innerHTML = '<p>لا توجد منتجات مطابقة للبحث.</p>';
     return;
   }
 
@@ -40,7 +39,38 @@ function displayProducts(products) {
   });
 }
 
-// إضافة منتج إلى السلة
+// البحث والفلترة
+function filterProducts() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  const category = document.getElementById('categoryFilter').value;
+  const sort = document.getElementById('priceSort').value;
+
+  let filtered = allProducts.filter(p => {
+    const matchesName = p.name.toLowerCase().includes(query);
+    const matchesCategory = (category === 'all') || (p.category === category);
+    return matchesName && matchesCategory;
+  });
+
+  if (sort === 'low-high') {
+    filtered.sort((a, b) => a.price - b.price);
+  } else if (sort === 'high-low') {
+    filtered.sort((a, b) => b.price - a.price);
+  }
+
+  displayProducts(filtered);
+}
+
+// فتح لوحة التحكم بعد التحقق من كلمة السر
+function openAdminPage() {
+  const password = prompt("أدخل كلمة السر الخاصة بالتاجر:");
+  if (password === "123456") { // يمكنك تغيير كلمة السر هذه مستقبلاً
+    window.location.href = "admin.html";
+  } else if (password !== null) {
+    alert("كلمة السر غير صحيحة!");
+  }
+}
+
+// السلة وإتمام الطلب
 function addToCart(id, name, price) {
   const existing = cart.find(item => item.id === id);
   if (existing) {
@@ -51,7 +81,6 @@ function addToCart(id, name, price) {
   updateCartUI();
 }
 
-// تحديث عداد وشكل السلة
 function updateCartUI() {
   const cartCount = document.getElementById('cartCount');
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -74,13 +103,11 @@ function updateCartUI() {
   cartItemsDiv.innerHTML = html;
 }
 
-// فتح وإغلاق نافذة السلة
 function toggleCart() {
   const modal = document.getElementById('cartModal');
   modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
 }
 
-// إرسال الطلب للسيرفر
 async function submitOrder(e) {
   e.preventDefault();
   if (cart.length === 0) {
@@ -104,7 +131,7 @@ async function submitOrder(e) {
     });
 
     if (res.ok) {
-      alert('تم إرسال طلبك بنجاح! سنتواصل معك قريباً.');
+      alert('تم إرسال طلبك بنجاح!');
       cart = [];
       updateCartUI();
       toggleCart();

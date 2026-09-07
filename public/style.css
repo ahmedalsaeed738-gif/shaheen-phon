@@ -55,6 +55,28 @@ header {
   font-weight: bold;
 }
 
+/* الأزرار في الهيدر */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-btn {
+  background: #37475a;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.admin-btn:hover {
+  background: #485769;
+}
+
 .cart-icon {
   background: var(--secondary-color);
   padding: 10px 15px;
@@ -69,6 +91,32 @@ header {
   height: 250px;
   object-fit: cover;
   display: block;
+}
+
+/* قسم الفلترة */
+.filter-section {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-family: inherit;
 }
 
 /* شبكة المنتجات */
@@ -157,7 +205,7 @@ header {
   left: 15px;
   font-size: 24px;
   cursor: pointer;
-  font-weight:8 bold;
+  font-weight: bold;
 }
 
 #checkoutForm input, #checkoutForm textarea {
