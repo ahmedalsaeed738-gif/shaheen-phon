@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 // Middlewares
 app.use(cors());
 app.use(express.json());
-
+app.use(express.static('public'));
 // الإعداد للاتصال بقاعدة البيانات السحابية (PostgreSQL)
 // لما نرفع على السيرفر هيربط تلقائياً بالـ DATABASE_URL
 const pool = new Pool({

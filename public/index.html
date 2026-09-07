@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>شاهين فون - Shaheen Phone</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- الهيدر العلوي -->
+  <header>
+    <div class="store-logo" id="storeName">شاهين فون</div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار...">
+      <button onclick="searchProducts()">بحث</button>
+    </div>
+    <div class="cart-icon" onclick="toggleCart()">
+      🛒 السلة (<span id="cartCount">0</span>)
+    </div>
+  </header>
+
+  <!-- بنر واجهة المتجر -->
+  <div class="hero-section">
+    <img id="storeBanner" src="https://via.placeholder.com/1200x300?text=Shaheen+Phone+Store" alt="بنر المتجر" class="hero-banner">
+  </div>
+
+  <!-- المحتوى الرئيسي -->
+  <div class="container">
+    <h2>أحدث الهواتف والإكسسوارات</h2>
+    <div id="productsGrid" class="products-grid">
+      <!-- المنتجات ستظهر هنا تلقائياً من قاعدة البيانات -->
+    </div>
+  </div>
+
+  <!-- نافذة سلة الشراء وإتمام الطلب -->
+  <div id="cartModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="toggleCart()">&times;</span>
+      <h3>سلة الشراء</h3>
+      <div id="cartItems"></div>
+      <hr>
+      <h3>بيانات التوصيل (Checkout)</h3>
+      <form id="checkoutForm" onsubmit="submitOrder(event)">
+        <input type="text" id="custName" placeholder="الاسم بالكامل" required>
+        <input type="tel" id="custPhone" placeholder="رقم الهاتف" required>
+        <textarea id="custAddress" placeholder="العنوان بالتفصيل" required></textarea>
+        <textarea id="custNotes" placeholder="ملاحظات أخرى (اختياري)"></textarea>
+        <button type="submit" class="btn-primary">إرسال الطلب</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
