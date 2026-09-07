@@ -11,8 +11,7 @@
   <header>
     <div class="store-logo" id="storeName">شاهين فون</div>
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار...">
-      <button onclick="searchProducts()">بحث</button>
+      <input type="text" id="searchInput" placeholder="ابحث عن هاتف أو إكسسوار..." onkeyup="filterProducts()">
     </div>
     <div class="cart-icon" onclick="toggleCart()">
       🛒 السلة (<span id="cartCount">0</span>)
@@ -24,10 +23,31 @@
   </div>
 
   <div class="container">
-    <h2>أحدث الهواتف والإكسسوارات</h2>
+    <div class="filter-section">
+      <label>فلترة حسب القسم: </label>
+      <select id="categoryFilter" onchange="filterProducts()">
+        <option value="الكل">الكل</option>
+        <option value="هواتف">هواتف</option>
+        <option value="إكسسوارات">إكسسوارات</option>
+        <option value="شواحن وكوابل">شواحن وكوابل</option>
+        <option value="ساعات ذكية">ساعات ذكية</option>
+        <option value="عام">عام</option>
+      </select>
+    </div>
+
+    <h2>أحدث المنتجات</h2>
     <div id="productsGrid" class="products-grid"></div>
   </div>
 
+  <!-- مودال تفاصيل المنتج -->
+  <div id="productDetailModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeProductModal()">&times;</span>
+      <div id="productModalBody"></div>
+    </div>
+  </div>
+
+  <!-- مودال السلة -->
   <div id="cartModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="toggleCart()">&times;</span>

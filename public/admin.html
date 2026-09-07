@@ -13,13 +13,41 @@
   </header>
 
   <div class="container">
+    <!-- إعدادات المتجر -->
     <div class="admin-section">
-      <h2>➕ إضافة منتج جديد</h2>
-      <form id="addProductForm" onsubmit="handleAddProduct(event)">
+      <h2>⚙️ إعدادات المتجر (الاسم والبنر)</h2>
+      <form id="settingsForm" onsubmit="handleSaveSettings(event)">
+        <input type="text" id="settingStoreName" placeholder="اسم المتجر">
+        <label>صورة بنر المتجر (من الجهاز):</label>
+        <input type="file" id="settingBannerFile" accept="image/*">
+        <button type="submit" class="btn-primary">حفظ إعدادات المتجر</button>
+      </form>
+    </div>
+
+    <!-- إضافة / تعديل منتج -->
+    <div class="admin-section" style="margin-top: 30px;">
+      <h2 id="formTitle">➕ إضافة منتج جديد</h2>
+      <form id="productForm" onsubmit="handleSaveProduct(event)">
+        <input type="hidden" id="editProductId">
         <input type="text" id="prodName" placeholder="اسم المنتج" required>
         <input type="number" id="prodPrice" placeholder="السعر (بالجنيه)" required>
-        <input type="url" id="prodImage" placeholder="رابط صورة المنتج">
-        <button type="submit" class="btn-primary">إضافة المنتج</button>
+        
+        <label>القسم:</label>
+        <select id="prodCategory">
+          <option value="عام">عام</option>
+          <option value="هواتف">هواتف</option>
+          <option value="إكسسوارات">إكسسوارات</option>
+          <option value="شواحن وكوابل">شواحن وكوابل</option>
+          <option value="ساعات ذكية">ساعات ذكية</option>
+        </select>
+
+        <label style="margin-top:10px; display:block;">صورة المنتج (من جهازك):</label>
+        <input type="file" id="prodImageFile" accept="image/*">
+
+        <textarea id="prodDesc" placeholder="تفاصيل ومواصفات المنتج..." rows="3"></textarea>
+        
+        <button type="submit" id="saveProdBtn" class="btn-primary">حفظ المنتج</button>
+        <button type="button" id="cancelEditBtn" class="btn-primary" style="background:#6c757d; display:none; margin-top:5px;" onclick="resetProductForm()">إلغاء التعديل</button>
       </form>
     </div>
 

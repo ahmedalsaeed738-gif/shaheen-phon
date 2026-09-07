@@ -1,16 +1,33 @@
+let allProducts = [];
 let cart = [];
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadStoreSettings();
   fetchProducts();
 });
+
+async function loadStoreSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    const settings = await res.json();
+    if (settings.store_name) {
+      document.getElementById('storeName').innerText = settings.store_name;
+    }
+    if (settings.banner_url) {
+      document.getElementById('storeBanner').src = settings.banner_url;
+    }
+  } catch (err) {
+    console.error('Error settings:', err);
+  }
+}
 
 async function fetchProducts() {
   try {
     const res = await fetch('/api/products');
-    const products = await res.json();
-    displayProducts(products);
+    allProducts = await res.json();
+    displayProducts(allProducts);
   } catch (err) {
-    console.error('خطأ في جلب المنتجات:', err);
+    console.error('Error products:', err);
   }
 }
 
@@ -19,7 +36,7 @@ function displayProducts(products) {
   grid.innerHTML = '';
 
   if (!products || products.length === 0) {
-    grid.innerHTML = '<p>لا توجد منتجات متاحة حالياً.</p>';
+    grid.innerHTML = '<p>لا توجد منتجات مطابقة.</p>';
     return;
   }
 
@@ -27,13 +44,48 @@ function displayProducts(products) {
     const card = document.createElement('div');
     card.className = 'product-card';
     card.innerHTML = `
-      <img src="${p.image_url || 'https://via.placeholder.com/200'}" alt="${p.name}">
-      <h3>${p.name}</h3>
+      <img src="${p.image_url || 'https://via.placeholder.com/200'}" alt="${p.name}" onclick="openProductModal(${p.id})">
+      <span class="category-badge">${p.category || 'عام'}</span>
+      <h3 onclick="openProductModal(${p.id})" style="cursor:pointer">${p.name}</h3>
       <div class="price">${p.price} جنيه</div>
       <button class="btn-primary" onclick="addToCart(${p.id}, '${p.name}', ${p.price})">إضافة للسلة 🛒</button>
     `;
     grid.appendChild(card);
   });
+}
+
+function filterProducts() {
+  const searchVal = document.getElementById('searchInput').value.toLowerCase();
+  const catVal = document.getElementById('categoryFilter').value;
+
+  const filtered = allProducts.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchVal);
+    const matchesCat = (catVal === 'الكل') || (p.category === catVal);
+    return matchesSearch && matchesCat;
+  });
+
+  displayProducts(filtered);
+}
+
+function openProductModal(id) {
+  const product = allProducts.find(p => p.id === id);
+  if (!product) return;
+
+  const body = document.getElementById('productModalBody');
+  body.innerHTML = `
+    <img src="${product.image_url || 'https://via.placeholder.com/200'}" style="width:100%; max-height:250px; object-fit:contain; border-radius:8px;">
+    <h2>${product.name}</h2>
+    <span class="category-badge">${product.category || 'عام'}</span>
+    <h3 style="color:#B12704;">${product.price} جنيه</h3>
+    <p style="margin-top:15px; line-height:1.6;">${product.description || 'لا يوجد وصف لهذا المنتج.'}</p>
+    <button class="btn-primary" onclick="addToCart(${product.id}, '${product.name}', ${product.price}); closeProductModal();">إضافة للسلة 🛒</button>
+  `;
+
+  document.getElementById('productDetailModal').style.display = 'flex';
+}
+
+function closeProductModal() {
+  document.getElementById('productDetailModal').style.display = 'none';
 }
 
 function addToCart(id, name, price) {
@@ -105,6 +157,6 @@ async function submitOrder(e) {
       alert('حدث خطأ أثناء إرسال الطلب.');
     }
   } catch (err) {
-    console.error('خطأ في إرسال الطلب:', err);
+    console.error('Order error:', err);
   }
 }
