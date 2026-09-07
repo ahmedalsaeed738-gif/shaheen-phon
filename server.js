@@ -9,7 +9,9 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// تقديم ملفات الـ public (الواجهات)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // الاتصال بقاعدة بيانات Neon
 const pool = new Pool({
@@ -43,15 +45,17 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✅ تم تجهيز جداول قاعدة البيانات بنجاح');
+    console.log('✅ تم تجهيز الجداول بنجاح');
   } catch (err) {
-    console.error('❌ خطأ في تهيئة الجداول:', err);
+    console.error('❌ خطأ في الجداول:', err.message);
   }
 };
 
 initDB();
 
-// API: جلب جميع المنتجات
+// --- مسارات الـ API ---
+
+// جلب المنتجات
 app.get('/api/products', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
@@ -61,13 +65,13 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// API: إضافة منتج جديد مع القسم
+// إضافة منتج
 app.post('/api/products', async (req, res) => {
   const { name, price, image_url, category } = req.body;
   try {
     const result = await pool.query(
       'INSERT INTO products (name, price, image_url, category) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, price, image_url || 'https://via.placeholder.com/200', category || 'هواتف']
+      [name, price, image_url || 'https://via.placeholder.com/200', category || 'عام']
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -75,7 +79,7 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-// API: حذف منتج
+// حذف منتج
 app.delete('/api/products/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
@@ -85,7 +89,7 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-// API: جلب كل الطلبات
+// جلب الطلبات
 app.get('/api/orders', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM orders ORDER BY id DESC');
@@ -95,7 +99,7 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// API: إنشاء طلب جديد من الزبون
+// إضافة طلب من الزبون
 app.post('/api/orders', async (req, res) => {
   const { customer_name, customer_phone, customer_address, notes, items } = req.body;
   try {
@@ -109,12 +113,16 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-// المسار الرئيسي لعرض الصفحة الرئيسية
-app.get('/', (req, res) => {
+// فتح لوحة التاجر
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// أي مسار تاني يفتح الواجهة الرئيسية
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// تصدير التطبيق ليعمل على Vercel
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
