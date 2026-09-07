@@ -5,54 +5,158 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>لوحة تحكم التاجر - شاهين فون</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+  </style>
 </head>
 <body>
 
   <!-- الهيدر العلوي -->
   <header>
     <div class="store-logo">⚙️ لوحة تحكم التاجر</div>
-    <a href="index.html" class="admin-btn" style="text-decoration: none; display: inline-block;">🏠 العودة للمتجر</a>
+    <a href="index.html" class="admin-btn" style="text-decoration: none;">🏠 العودة للمتجر</a>
   </header>
 
   <div class="container">
-    <h2>إضافة منتج جديد</h2>
-    <form id="addProductForm" onsubmit="handleAddProduct(event)" style="background: white; padding: 20px; border-radius: 8px; max-width: 500px; margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-      <input type="text" id="pName" placeholder="اسم المنتج (مثال: سامسونج A55)" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;" required>
-      <input type="number" id="pPrice" placeholder="السعر بالجنيه" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;" required>
-      <select id="pCategory" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;">
-        <option value="phones">هواتف</option>
-        <option value="accessories">إكسسوارات</option>
-      </select>
-      <input type="text" id="pImg" placeholder="رابط صورة المنتج (URL)" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;">
-      <button type="submit" class="btn-primary">إضافة المنتج</button>
-    </form>
-
-    <h2>الطلبات الواردة من الزبائن</h2>
-    <div id="ordersList">
-      <p>جاري تحميل الطلبات...</p>
+    
+    <!-- 1. تعديل إعدادات المتجر والبانر -->
+    <div class="admin-section">
+      <h2>🎨 إعدادات واجهة المتجر</h2>
+      <form id="settingsForm" onsubmit="handleUpdateSettings(event)">
+        <div class="form-group">
+          <label>اسم المتجر:</label>
+          <input type="text" id="storeNameInput" placeholder="شاهين فون" required>
+        </div>
+        <div class="form-group">
+          <label>اختر صورة البانر من الجهاز:</label>
+          <input type="file" id="bannerFile" accept="image/*">
+        </div>
+        <button type="submit" class="btn-primary">حفظ إعدادات المتجر</button>
+      </form>
     </div>
+
+    <!-- 2. إضافة منتج جديد مع صورة من الجهاز -->
+    <div class="admin-section">
+      <h2>➕ إضافة منتج جديد</h2>
+      <form id="productForm" onsubmit="handleAddProduct(event)">
+        <div class="form-group">
+          <label>اسم المنتج:</label>
+          <input type="text" id="pName" placeholder="مثال: سامسونج Galaxy A55" required>
+        </div>
+        <div class="form-group">
+          <label>السعر (بالجنيه):</label>
+          <input type="number" id="pPrice" placeholder="15000" required>
+        </div>
+        <div class="form-group">
+          <label>الفئة:</label>
+          <select id="pCategory">
+            <option value="phones">هواتف</option>
+            <option value="accessories">إكسسوارات</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>اختر صورة المنتج من الجهاز:</label>
+          <input type="file" id="productFile" accept="image/*" required>
+        </div>
+        <button type="submit" class="btn-primary">إضافة المنتج</button>
+      </form>
+    </div>
+
+    <!-- 3. قائمة الطلبات الواردة -->
+    <div class="admin-section">
+      <h2>📦 الطلبات الواردة من الزبائن</h2>
+      <div id="ordersList">
+        <p>جاري تحميل الطلبات...</p>
+      </div>
+    </div>
+
   </div>
 
   <script>
-    // إضافة منتج جديد
+    // تحميل إعدادات المتجر الحالية والطلبات عند فتح الصفحة
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      loadOrders();
+    });
+
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.name) document.getElementById('storeNameInput').value = data.name;
+      } catch (err) {
+        console.error('خطأ في تحميل الإعدادات:', err);
+      }
+    }
+
+    // حفظ وتحديث اسم المتجر والبانر
+    async function handleUpdateSettings(e) {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('name', document.getElementById('storeNameInput').value);
+      
+      const bannerFile = document.getElementById('bannerFile').files[0];
+      if (bannerFile) {
+        formData.append('banner', bannerFile);
+      }
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          alert('تم تحديث إعدادات المتجر والبانر بنجاح!');
+        } else {
+          alert('حدث خطأ أثناء تحديث الإعدادات.');
+        }
+      } catch (err) {
+        console.error('خطأ:', err);
+      }
+    }
+
+    // إضافة منتج جديد رفعه من الجهاز
     async function handleAddProduct(e) {
       e.preventDefault();
-      const product = {
-        name: document.getElementById('pName').value,
-        price: parseFloat(document.getElementById('pPrice').value),
-        category: document.getElementById('pCategory').value,
-        image_url: document.getElementById('pImg').value
-      };
+      const formData = new FormData();
+      formData.append('name', document.getElementById('pName').value);
+      formData.append('price', document.getElementById('pPrice').value);
+      formData.append('category', document.getElementById('pCategory').value);
+
+      const productFile = document.getElementById('productFile').files[0];
+      if (productFile) {
+        formData.append('image', productFile);
+      }
 
       try {
         const res = await fetch('/api/products', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(product)
+          body: formData
         });
         if (res.ok) {
-          alert('تم إضافة المنتج بنجاح!');
-          document.getElementById('addProductForm').reset();
+          alert('تمت إضافة المنتج ورَفْع صورته بنجاح!');
+          document.getElementById('productForm').reset();
         } else {
           alert('حدث خطأ أثناء إضافة المنتج.');
         }
@@ -61,8 +165,8 @@
       }
     }
 
-    // جلب الطلبات عند فتح الصفحة
-    document.addEventListener('DOMContentLoaded', async () => {
+    // تحميل الطلبات
+    async function loadOrders() {
       try {
         const res = await fetch('/api/orders');
         const orders = await res.json();
@@ -76,7 +180,7 @@
         let html = '';
         orders.forEach(o => {
           html += `
-            <div style="background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-right: 5px solid #131921;">
+            <div style="background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-right: 5px solid #131921;">
               <h4>طلب رقم #${o.id} - الزبون: ${o.customer_name}</h4>
               <p>📱 الهاتف: ${o.customer_phone}</p>
               <p>📍 العنوان: ${o.customer_address}</p>
@@ -88,7 +192,7 @@
       } catch (err) {
         document.getElementById('ordersList').innerHTML = '<p>تعذر تحميل الطلبات.</p>';
       }
-    });
+    }
   </script>
 </body>
 </html>

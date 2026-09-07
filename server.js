@@ -1,108 +1,112 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// إعداد مجلد حفظ الصور المرفوعة من الجهاز
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
-// الإعداد للاتصال بقاعدة البيانات السحابية (PostgreSQL)
-// لما نرفع على السيرفر هيربط تلقائياً بالـ DATABASE_URL
+
+// الاتصال بقاعدة البيانات
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// إنشاء جدول المنتجات تلقائياً إذا لم يكن موجوداً
-const initDB = async () => {
-  if (!process.env.DATABASE_URL) {
-    console.log('⚠️ السيرفر يعمل حالياً بدون داتابيز أونلاين (جاهز للربط عند الرفع)');
-    return;
-  }
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS products (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        price NUMERIC NOT NULL,
-        description TEXT,
-        category VARCHAR(100),
-        image TEXT
-      );
-    `);
-    console.log('✅ تم الاتصال بقاعدة البيانات أونلاين بنجاح (Shaheen Phone DB)');
-  } catch (err) {
-    console.error('❌ خطأ في الاتصال بقاعدة البيانات:', err.message);
-  }
+// متغير مؤقت لتخزين إعدادات اسم المتجر والبانر
+let storeSettings = {
+  name: 'شاهين فون',
+  bannerUrl: 'https://via.placeholder.com/1200x300?text=Shaheen+Phone+Store'
 };
 
-// ---------------- REST APIs ----------------
+// --- API المسارات ---
 
-// 1. اختبار السيرفر
-const path = require('path');
+// 1. جلب إعدادات المتجر
+app.get('/api/settings', (req, res) => {
+  res.json(storeSettings);
+});
 
+// 2. تحديث اسم المتجر وصورة البانر من الجهاز
+app.post('/api/settings', upload.single('banner'), (req, res) => {
+  if (req.body.name) storeSettings.name = req.body.name;
+  if (req.file) storeSettings.bannerUrl = `/uploads/${req.file.filename}`;
+  res.json({ message: 'تم تحديث إعدادات المتجر بنجاح', settings: storeSettings });
+});
+
+// 3. جلب المنتجات
+app.get('/api/products', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'خطأ في جلب المنتجات' });
+  }
+});
+
+// 4. إضافة منتج مع رفع صورته من الجهاز
+app.post('/api/products', upload.single('image'), async (req, res) => {
+  const { name, price, category } = req.body;
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : 'https://via.placeholder.com/200';
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO products (name, price, category, image_url) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, price, category, imageUrl]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'خطأ في إضافة المنتج' });
+  }
+});
+
+// 5. جلب الطلبات
+app.get('/api/orders', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM orders ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'خطأ في جلب الطلبات' });
+  }
+});
+
+// 6. إضافة طلب جديد
+app.post('/api/orders', async (req, res) => {
+  const { customer_name, customer_phone, customer_address, notes, items } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO orders (customer_name, customer_phone, customer_address, notes, items) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [customer_name, customer_phone, customer_address, notes, JSON.stringify(items)]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'خطأ في حفظ الطلب' });
+  }
+});
+
+// المسار الرئيسي
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 2. جلب جميع المنتجات أو البحث
-app.get('/api/products', async (req, res) => {
-  try {
-    const { search } = req.query;
-    if (!process.env.DATABASE_URL) {
-      // تجربة عينة مؤقتة لو الداتابيز لسه ماترطتش
-      return res.json({
-        success: true,
-        data: [
-          { id: 1, name: 'آيفون 15 بروماكس', price: 60000, description: 'أحدث هاتف من أبل', category: 'آبل' }
-        ]
-      });
-    }
-
-    let query = 'SELECT * FROM products';
-    let params = [];
-
-    if (search) {
-      query += ' WHERE name ILIKE $1 OR description ILIKE $1';
-      params.push(`%${search}%`);
-    }
-
-    const result = await pool.query(query, params);
-    res.json({ success: true, count: result.rows.length, data: result.rows });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// 3. إضافة منتج جديد
-app.post('/api/products', async (req, res) => {
-  try {
-    const { name, price, description, category, image } = req.body;
-    if (!name || !price) {
-      return res.status(400).json({ success: false, message: 'اسم المنتج والسعر مطلوبان' });
-    }
-
-    if (!process.env.DATABASE_URL) {
-      return res.status(400).json({ success: false, message: 'يرجى ربط السيرفر بقاعدة البيانات أونلاين أولاً' });
-    }
-
-    const result = await pool.query(
-      'INSERT INTO products (name, price, description, category, image) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [name, price, description || '', category || 'الهواتف', image || '']
-    );
-
-    res.status(201).json({ success: true, message: 'تم إضافة المنتج بنجاح', product: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// تشغيل السيرفر
-app.listen(PORT, async () => {
-  console.log(`🚀 سيرفر شاهين فون شغال دلوقتي على: http://localhost:${PORT}`);
-  await initDB();
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });

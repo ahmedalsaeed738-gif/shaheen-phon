@@ -2,8 +2,25 @@ let allProducts = [];
 let cart = [];
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadStoreSettings();
   fetchProducts();
 });
+
+// جلب وتحديث إعدادات اسم المتجر والبانر الرئيسي
+async function loadStoreSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    const settings = await res.json();
+    if (settings.name) {
+      document.getElementById('storeName').innerText = settings.name;
+    }
+    if (settings.bannerUrl) {
+      document.getElementById('storeBanner').src = settings.bannerUrl;
+    }
+  } catch (err) {
+    console.error('خطأ في جلب إعدادات المتجر:', err);
+  }
+}
 
 // جلب المنتجات من السيرفر
 async function fetchProducts() {
@@ -16,7 +33,7 @@ async function fetchProducts() {
   }
 }
 
-// عرض المنتجات
+// عرض المنتجات في الواجهة
 function displayProducts(products) {
   const grid = document.getElementById('productsGrid');
   grid.innerHTML = '';
@@ -39,7 +56,7 @@ function displayProducts(products) {
   });
 }
 
-// البحث والفلترة
+// محرك البحث والفلترة حسب الفئة والتصفية
 function filterProducts() {
   const query = document.getElementById('searchInput').value.toLowerCase();
   const category = document.getElementById('categoryFilter').value;
@@ -63,14 +80,14 @@ function filterProducts() {
 // فتح لوحة التحكم بعد التحقق من كلمة السر
 function openAdminPage() {
   const password = prompt("أدخل كلمة السر الخاصة بالتاجر:");
-  if (password === "123456") { // يمكنك تغيير كلمة السر هذه مستقبلاً
+  if (password === "123456") {
     window.location.href = "admin.html";
   } else if (password !== null) {
     alert("كلمة السر غير صحيحة!");
   }
 }
 
-// السلة وإتمام الطلب
+// إضافة منتج إلى سلة الشراء
 function addToCart(id, name, price) {
   const existing = cart.find(item => item.id === id);
   if (existing) {
@@ -81,6 +98,7 @@ function addToCart(id, name, price) {
   updateCartUI();
 }
 
+// تحديث واجهة السلة والعداد
 function updateCartUI() {
   const cartCount = document.getElementById('cartCount');
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -103,11 +121,13 @@ function updateCartUI() {
   cartItemsDiv.innerHTML = html;
 }
 
+// فتح/إغلاق نافذة السلة
 function toggleCart() {
   const modal = document.getElementById('cartModal');
   modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
 }
 
+// إرسال الطلب للسيرفر
 async function submitOrder(e) {
   e.preventDefault();
   if (cart.length === 0) {
