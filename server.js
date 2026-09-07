@@ -19,9 +19,12 @@ if (process.env.DATABASE_URL) {
   });
 }
 
+// دالة إصلاح وإعادة تهيئة الهيكل بالكامل
+let dbInitialized = false;
 const initDB = async () => {
-  if (!pool) return;
+  if (!pool || dbInitialized) return;
   try {
+    // التأكد من إضافة عمود stock لو الجدول قديم
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -33,12 +36,10 @@ const initDB = async () => {
       );
     `);
 
-    // محاولة إضافة العمود لو مش موجود وبدون التسبب في أي مشكلة
-    try {
-      await pool.query(`ALTER TABLE products ADD COLUMN stock INT DEFAULT 1;`);
-    } catch (e) {
-      // إذا كان العمود موجوداً أو رفضت القاعدة إضافته، يستمر الكود طبيعي
-    }
+    // إضافة الأعمدة المفقودة في حالة عدم وجودها
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INT DEFAULT 1;`);
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'عام';`);
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT;`);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
@@ -66,16 +67,23 @@ const initDB = async () => {
       VALUES (1, 'شاهين فون', 'https://via.placeholder.com/1200x300?text=Shaheen+Phone+Store')
       ON CONFLICT (id) DO NOTHING;
     `);
+
+    dbInitialized = true;
   } catch (err) {
     console.error('DB Init Error:', err.message);
   }
 };
 
+// تشغيل التهيئة فورياً
+app.use(async (req, res, next) => {
+  await initDB();
+  next();
+});
+
 // --- API الإعدادات ---
 app.get('/api/settings', async (req, res) => {
   if (!pool) return res.json({ store_name: 'شاهين فون', banner_url: '' });
   try {
-    await initDB();
     const result = await pool.query('SELECT * FROM store_settings WHERE id = 1');
     res.json(result.rows[0] || {});
   } catch (err) {
@@ -87,7 +95,6 @@ app.post('/api/settings', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { store_name, banner_url } = req.body;
   try {
-    await initDB();
     const result = await pool.query(
       `UPDATE store_settings SET store_name = COALESCE($1, store_name), banner_url = COALESCE($2, banner_url) WHERE id = 1 RETURNING *`,
       [store_name, banner_url]
@@ -98,11 +105,10 @@ app.post('/api/settings', async (req, res) => {
   }
 });
 
-// --- API المنتجات (آمن 100% ويتحقق من العمود) ---
+// --- API المنتجات ---
 app.get('/api/products', async (req, res) => {
   if (!pool) return res.json([]);
   try {
-    await initDB();
     const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
@@ -114,21 +120,17 @@ app.post('/api/products', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { name, price, stock, image_url, category, description } = req.body;
   try {
-    await initDB();
-    let result;
-    try {
-      // تجربة الحفظ بالعمود الجديد
-      result = await pool.query(
-        'INSERT INTO products (name, price, stock, image_url, category, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [name, parseFloat(price), parseInt(stock) || 1, image_url || 'https://via.placeholder.com/200', category || 'عام', description || '']
-      );
-    } catch (stockErr) {
-      // إذا فشل بسبب عدم وجود عمود stock، احفظ بالهيكل الأساسي المضمون
-      result = await pool.query(
-        'INSERT INTO products (name, price, image_url, category, description) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [name, parseFloat(price), image_url || 'https://via.placeholder.com/200', category || 'عام', description || '']
-      );
-    }
+    const result = await pool.query(
+      'INSERT INTO products (name, price, stock, image_url, category, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [
+        name, 
+        parseFloat(price) || 0, 
+        parseInt(stock) || 1, 
+        image_url || 'https://via.placeholder.com/200', 
+        category || 'عام', 
+        description || ''
+      ]
+    );
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -139,19 +141,18 @@ app.put('/api/products/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { name, price, stock, image_url, category, description } = req.body;
   try {
-    await initDB();
-    let result;
-    try {
-      result = await pool.query(
-        `UPDATE products SET name=$1, price=$2, stock=$3, image_url=COALESCE($4, image_url), category=$5, description=$6 WHERE id=$7 RETURNING *`,
-        [name, parseFloat(price), parseInt(stock) || 1, image_url, category || 'عام', description || '', req.params.id]
-      );
-    } catch (stockErr) {
-      result = await pool.query(
-        `UPDATE products SET name=$1, price=$2, image_url=COALESCE($3, image_url), category=$4, description=$5 WHERE id=$6 RETURNING *`,
-        [name, parseFloat(price), image_url, category || 'عام', description || '', req.params.id]
-      );
-    }
+    const result = await pool.query(
+      `UPDATE products SET name=$1, price=$2, stock=$3, image_url=COALESCE($4, image_url), category=$5, description=$6 WHERE id=$7 RETURNING *`,
+      [
+        name, 
+        parseFloat(price) || 0, 
+        parseInt(stock) || 1, 
+        image_url, 
+        category || 'عام', 
+        description || '', 
+        req.params.id
+      ]
+    );
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -161,7 +162,6 @@ app.put('/api/products/:id', async (req, res) => {
 app.delete('/api/products/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   try {
-    await initDB();
     await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
     res.json({ message: 'تم الحذف بنجاح' });
   } catch (err) {
@@ -173,7 +173,6 @@ app.delete('/api/products/:id', async (req, res) => {
 app.get('/api/orders', async (req, res) => {
   if (!pool) return res.json([]);
   try {
-    await initDB();
     const result = await pool.query('SELECT * FROM orders ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
@@ -184,7 +183,6 @@ app.get('/api/orders', async (req, res) => {
 app.get('/api/orders/track/:phone', async (req, res) => {
   if (!pool) return res.json([]);
   try {
-    await initDB();
     const result = await pool.query('SELECT * FROM orders WHERE customer_phone = $1 ORDER BY id DESC', [req.params.phone]);
     res.json(result.rows);
   } catch (err) {
@@ -196,7 +194,6 @@ app.post('/api/orders', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { customer_name, customer_phone, customer_address, notes, items } = req.body;
   try {
-    await initDB();
     const result = await pool.query(
       'INSERT INTO orders (customer_name, customer_phone, customer_address, notes, items) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [customer_name, customer_phone, customer_address, notes, JSON.stringify(items)]
@@ -211,7 +208,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { status } = req.body;
   try {
-    await initDB();
     const result = await pool.query('UPDATE orders SET status = $1 WHERE id = $2 RETURNING *', [status, req.params.id]);
     res.json(result.rows[0]);
   } catch (err) {
@@ -222,7 +218,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
 app.delete('/api/orders/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   try {
-    await initDB();
     await pool.query('DELETE FROM orders WHERE id = $1', [req.params.id]);
     res.json({ message: 'تم حذف الطلب بنجاح' });
   } catch (err) {
