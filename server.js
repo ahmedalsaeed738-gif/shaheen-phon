@@ -19,12 +19,10 @@ if (process.env.DATABASE_URL) {
   });
 }
 
-// دالة تهيئة الجداول وتحديث الهيكل تلقائياً
-let isDbChecked = false;
-const checkAndFixSchema = async () => {
-  if (!pool || isDbChecked) return;
+// دالة مبسطة جداً لتهيئة الجداول وإضافة العمود إن لم يكن موجوداً
+const initDB = async () => {
+  if (!pool) return;
   try {
-    // 1. إنشاء جدول المنتجات الأساسي إن لم يكن موجوداً
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -36,20 +34,13 @@ const checkAndFixSchema = async () => {
       );
     `);
 
-    // 2. إجبار إضافة عمود stock لو مش موجود في جدول products
-    await pool.query(`
-      DO $$ 
-      BEGIN 
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_name='products' AND column_name='stock'
-        ) THEN
-          ALTER TABLE products ADD COLUMN stock INT DEFAULT 1;
-        END IF;
-      END $$;
-    `);
+    // إدراج العمود بأبسط طريقة وبدون شروط معقدة لتفادي الخطأ
+    try {
+      await pool.query(`ALTER TABLE products ADD COLUMN stock INT DEFAULT 1;`);
+    } catch (e) {
+      // إذا كان العمود موجوداً بالفعل، سيتم إكمال الكود طبيعي بدون توقف
+    }
 
-    // 3. إنشاء جدول الطلبات
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
@@ -63,7 +54,6 @@ const checkAndFixSchema = async () => {
       );
     `);
 
-    // 4. إنشاء جدول إعدادات المتجر
     await pool.query(`
       CREATE TABLE IF NOT EXISTS store_settings (
         id INT PRIMARY KEY DEFAULT 1,
@@ -77,24 +67,16 @@ const checkAndFixSchema = async () => {
       VALUES (1, 'شاهين فون', 'https://via.placeholder.com/1200x300?text=Shaheen+Phone+Store')
       ON CONFLICT (id) DO NOTHING;
     `);
-
-    isDbChecked = true;
-    console.log('✅ Schema check completed successfully');
   } catch (err) {
-    console.error('❌ Schema Fix Error:', err.message);
+    console.error('DB Init Error:', err.message);
   }
 };
-
-// تشغيل الفحص التلقائي مع كل طلب لضمان تحديث الجدول فوراً
-app.use(async (req, res, next) => {
-  await checkAndFixSchema();
-  next();
-});
 
 // --- API الإعدادات ---
 app.get('/api/settings', async (req, res) => {
   if (!pool) return res.json({ store_name: 'شاهين فون', banner_url: '' });
   try {
+    await initDB();
     const result = await pool.query('SELECT * FROM store_settings WHERE id = 1');
     res.json(result.rows[0] || {});
   } catch (err) {
@@ -106,6 +88,7 @@ app.post('/api/settings', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { store_name, banner_url } = req.body;
   try {
+    await initDB();
     const result = await pool.query(
       `UPDATE store_settings SET store_name = COALESCE($1, store_name), banner_url = COALESCE($2, banner_url) WHERE id = 1 RETURNING *`,
       [store_name, banner_url]
@@ -120,6 +103,7 @@ app.post('/api/settings', async (req, res) => {
 app.get('/api/products', async (req, res) => {
   if (!pool) return res.json([]);
   try {
+    await initDB();
     const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
@@ -131,6 +115,7 @@ app.post('/api/products', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { name, price, stock, image_url, category, description } = req.body;
   try {
+    await initDB();
     const result = await pool.query(
       'INSERT INTO products (name, price, stock, image_url, category, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [name, parseFloat(price), parseInt(stock) || 1, image_url || 'https://via.placeholder.com/200', category || 'عام', description || '']
@@ -145,6 +130,7 @@ app.put('/api/products/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { name, price, stock, image_url, category, description } = req.body;
   try {
+    await initDB();
     const result = await pool.query(
       `UPDATE products SET name=$1, price=$2, stock=$3, image_url=COALESCE($4, image_url), category=$5, description=$6 WHERE id=$7 RETURNING *`,
       [name, parseFloat(price), parseInt(stock) || 1, image_url, category || 'عام', description || '', req.params.id]
@@ -158,6 +144,7 @@ app.put('/api/products/:id', async (req, res) => {
 app.delete('/api/products/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   try {
+    await initDB();
     await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
     res.json({ message: 'تم الحذف بنجاح' });
   } catch (err) {
@@ -165,10 +152,11 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-// --- API الطلبات والتتبع ---
+// --- API الطلبات ---
 app.get('/api/orders', async (req, res) => {
   if (!pool) return res.json([]);
   try {
+    await initDB();
     const result = await pool.query('SELECT * FROM orders ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
@@ -179,6 +167,7 @@ app.get('/api/orders', async (req, res) => {
 app.get('/api/orders/track/:phone', async (req, res) => {
   if (!pool) return res.json([]);
   try {
+    await initDB();
     const result = await pool.query('SELECT * FROM orders WHERE customer_phone = $1 ORDER BY id DESC', [req.params.phone]);
     res.json(result.rows);
   } catch (err) {
@@ -190,6 +179,7 @@ app.post('/api/orders', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { customer_name, customer_phone, customer_address, notes, items } = req.body;
   try {
+    await initDB();
     const result = await pool.query(
       'INSERT INTO orders (customer_name, customer_phone, customer_address, notes, items) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [customer_name, customer_phone, customer_address, notes, JSON.stringify(items)]
@@ -204,6 +194,7 @@ app.put('/api/orders/:id/status', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   const { status } = req.body;
   try {
+    await initDB();
     const result = await pool.query('UPDATE orders SET status = $1 WHERE id = $2 RETURNING *', [status, req.params.id]);
     res.json(result.rows[0]);
   } catch (err) {
@@ -214,6 +205,7 @@ app.put('/api/orders/:id/status', async (req, res) => {
 app.delete('/api/orders/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   try {
+    await initDB();
     await pool.query('DELETE FROM orders WHERE id = $1', [req.params.id]);
     res.json({ message: 'تم حذف الطلب بنجاح' });
   } catch (err) {
