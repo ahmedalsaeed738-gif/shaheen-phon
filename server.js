@@ -22,18 +22,24 @@ if (process.env.DATABASE_URL) {
 const initDB = async () => {
   if (!pool) return;
   try {
+    // 1. إنشاء جدول المنتجات الأساسي
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price NUMERIC NOT NULL,
-        stock INT DEFAULT 1,
         image_url TEXT,
         category VARCHAR(100) DEFAULT 'عام',
         description TEXT
       );
     `);
 
+    // 2. إجبار إدراج عمود stock إن لم يكن موجوداً
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INT DEFAULT 1;
+    `);
+
+    // 3. إنشاء جدول الطلبات
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
@@ -47,6 +53,7 @@ const initDB = async () => {
       );
     `);
 
+    // 4. إنشاء جدول إعدادات المتجر
     await pool.query(`
       CREATE TABLE IF NOT EXISTS store_settings (
         id INT PRIMARY KEY DEFAULT 1,
@@ -61,7 +68,7 @@ const initDB = async () => {
       ON CONFLICT (id) DO NOTHING;
     `);
   } catch (err) {
-    console.error('DB Error:', err.message);
+    console.error('DB Init Error:', err.message);
   }
 };
 
@@ -144,7 +151,7 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-// الطلبات والتتبع
+// الطلبات
 app.get('/api/orders', async (req, res) => {
   if (!pool) return res.json([]);
   try {
@@ -194,7 +201,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
   }
 });
 
-// مسار حذف الطلب
 app.delete('/api/orders/:id', async (req, res) => {
   if (!pool) return res.status(400).json({ error: 'DB not connected' });
   try {
