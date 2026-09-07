@@ -32,11 +32,34 @@ function logoutAdmin() {
   location.reload();
 }
 
-function fileToBase64(file) {
+// دالة ضغط الصور وتقليل حجمها تلقائياً قبل الرفع لتفادي أي خطأ
+function compressImage(file, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // إرجاع الصورة بصيغة JPEG مضغوطة وحجمها صغير جداً
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = error => reject(error);
+    };
     reader.onerror = error => reject(error);
   });
 }
@@ -55,7 +78,14 @@ async function handleSaveSettings(e) {
   const bannerFile = document.getElementById('settingBannerFile').files[0];
 
   let banner_url = null;
-  if (bannerFile) banner_url = await fileToBase64(bannerFile);
+  if (bannerFile) {
+    try {
+      banner_url = await compressImage(bannerFile, 1200, 0.7);
+    } catch (err) {
+      alert('حدث خطأ أثناء معالجة صورة البنر');
+      return;
+    }
+  }
 
   try {
     const res = await fetch('/api/settings', {
@@ -64,6 +94,7 @@ async function handleSaveSettings(e) {
       body: JSON.stringify({ store_name, banner_url })
     });
     if (res.ok) alert('تم حفظ إعدادات المتجر بنجاح!');
+    else alert('حدث خطأ أثناء حفظ الإعدادات.');
   } catch (err) { console.error(err); }
 }
 
@@ -104,9 +135,9 @@ async function handleSaveProduct(e) {
   let image_url = null;
   if (imageFile) {
     try {
-      image_url = await fileToBase64(imageFile);
+      image_url = await compressImage(imageFile, 600, 0.7);
     } catch (err) {
-      alert('حدث خطأ في قراءة الصورة');
+      alert('حدث خطأ في معالجة صورة المنتج');
       return;
     }
   }
@@ -124,7 +155,7 @@ async function handleSaveProduct(e) {
       loadAdminProducts();
     } else {
       const errData = await res.json();
-      alert('حدث خطأ أثناء الحفظ: ' + (errData.error || 'تأكد من الاتصال بقاعدة البيانات'));
+      alert('حدث خطأ أثناء الحفظ: ' + (errData.error || 'خطأ في الاستجابة'));
     }
   } catch (err) { 
     console.error(err);
@@ -212,7 +243,6 @@ async function updateOrderStatus(id, status) {
   } catch (err) { console.error(err); }
 }
 
-// دالة حذف الطلب عند الاكتفاء منه
 async function deleteOrder(id) {
   if (!confirm('هل تأكدت من حذف هذا الطلب نهائياً؟')) return;
   try {
