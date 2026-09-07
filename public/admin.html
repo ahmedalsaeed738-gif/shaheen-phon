@@ -31,16 +31,19 @@
     </header>
 
     <div class="container">
+      <!-- إعدادات المتجر -->
       <div class="admin-section">
         <h2>⚙️ إعدادات المتجر (الاسم والبنر)</h2>
         <form id="settingsForm" onsubmit="handleSaveSettings(event)">
           <input type="text" id="settingStoreName" placeholder="اسم المتجر">
-          <label>بنر المتجر (صورة من جهازك):</label>
+          <input type="url" id="settingBannerUrl" placeholder="رابط صورة بنر المتجر (أو اختر صورة من جهازك بالأسفل)">
+          <label>أو بنر من جهازك (مضغوط):</label>
           <input type="file" id="settingBannerFile" accept="image/*">
           <button type="submit" class="btn-primary">حفظ إعدادات المتجر</button>
         </form>
       </div>
 
+      <!-- إضافة / تعديل منتج -->
       <div class="admin-section" style="margin-top: 30px;">
         <h2 id="formTitle">➕ إضافة / تعديل منتج</h2>
         <form id="productForm" onsubmit="handleSaveProduct(event)">
@@ -60,7 +63,8 @@
             <option value="إكسسوارات">إكسسوارات</option>
           </select>
 
-          <label style="margin-top:10px; display:block;">صورة المنتج (من جهازك):</label>
+          <input type="url" id="prodImageUrl" placeholder="رابط صورة المنتج (اختياري)">
+          <label>أو اختر صورة من جهازك:</label>
           <input type="file" id="prodImageFile" accept="image/*">
 
           <textarea id="prodDesc" placeholder="مواصفات وتفاصيل المنتج..." rows="3"></textarea>

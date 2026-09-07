@@ -32,8 +32,8 @@ function logoutAdmin() {
   location.reload();
 }
 
-// دالة ضغط الصور وتقليل حجمها تلقائياً قبل الرفع لتفادي أي خطأ
-function compressImage(file, maxWidth = 800, quality = 0.7) {
+// ضغط شديد جداً للصور لتصغير الحجم إلى أقل من 100KB
+function compressImage(file, maxWidth = 400, quality = 0.5) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -54,8 +54,6 @@ function compressImage(file, maxWidth = 800, quality = 0.7) {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-
-        // إرجاع الصورة بصيغة JPEG مضغوطة وحجمها صغير جداً
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.onerror = error => reject(error);
@@ -75,12 +73,13 @@ async function loadSettings() {
 async function handleSaveSettings(e) {
   e.preventDefault();
   const store_name = document.getElementById('settingStoreName').value;
+  const bannerUrl = document.getElementById('settingBannerUrl').value;
   const bannerFile = document.getElementById('settingBannerFile').files[0];
 
-  let banner_url = null;
+  let banner_url = bannerUrl || null;
   if (bannerFile) {
     try {
-      banner_url = await compressImage(bannerFile, 1200, 0.7);
+      banner_url = await compressImage(bannerFile, 800, 0.5);
     } catch (err) {
       alert('حدث خطأ أثناء معالجة صورة البنر');
       return;
@@ -94,7 +93,7 @@ async function handleSaveSettings(e) {
       body: JSON.stringify({ store_name, banner_url })
     });
     if (res.ok) alert('تم حفظ إعدادات المتجر بنجاح!');
-    else alert('حدث خطأ أثناء حفظ الإعدادات.');
+    else alert('حدث خطأ أثناء الحفظ');
   } catch (err) { console.error(err); }
 }
 
@@ -130,12 +129,13 @@ async function handleSaveProduct(e) {
   const stock = document.getElementById('prodStock').value;
   const category = document.getElementById('prodCategory').value;
   const description = document.getElementById('prodDesc').value;
+  const imageUrlInput = document.getElementById('prodImageUrl').value;
   const imageFile = document.getElementById('prodImageFile').files[0];
 
-  let image_url = null;
+  let image_url = imageUrlInput || null;
   if (imageFile) {
     try {
-      image_url = await compressImage(imageFile, 600, 0.7);
+      image_url = await compressImage(imageFile, 400, 0.5);
     } catch (err) {
       alert('حدث خطأ في معالجة صورة المنتج');
       return;
@@ -154,8 +154,7 @@ async function handleSaveProduct(e) {
       resetProductForm();
       loadAdminProducts();
     } else {
-      const errData = await res.json();
-      alert('حدث خطأ أثناء الحفظ: ' + (errData.error || 'خطأ في الاستجابة'));
+      alert('تعذر الحفظ: تأكد من أن حقول البيانات صحيحة');
     }
   } catch (err) { 
     console.error(err);
