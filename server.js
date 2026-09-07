@@ -43,8 +43,10 @@ const initDB = async () => {
 // ---------------- REST APIs ----------------
 
 // 1. اختبار السيرفر
+const path = require('path');
+
 app.get('/', (req, res) => {
-  res.send('📱 سيرفر شاهين فون (Shaheen Phone) يعمل بنجاح!');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 2. جلب جميع المنتجات أو البحث
